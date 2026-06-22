@@ -1,0 +1,14 @@
+# ===== 基础依赖 =====
+# 高稳定性 GUI 框架（Qt6 官方绑定）
+PySide6>=6.5.0
+
+# 输入监听（跨平台）
+pynput>=1.7.6
+
+# ===== Windows 平台依赖 =====
+# 窗口管理、系统托盘图标
+pywin32>=306; platform_system=='Windows'
+
+# ===== 可选依赖 =====
+# 如果你需要更丰富的桌面通知
+# pyqt-toast-notification>=0.5.0
