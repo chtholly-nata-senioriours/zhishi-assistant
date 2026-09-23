@@ -1,0 +1,48 @@
+# Python 缓存
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# 虚拟环境
+venv/
+env/
+ENV/
+.venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# 用户配置（默认配置在版本控制中，用户配置不提交）
+user_config.json
+*.log
+
+# 操作系统
+.DS_Store
+Thumbs.db
+
+# 打包产物
+build/
+dist/
+*.spec
+*.exe
+
+# 随项目分发的第三方库/运行时（依赖由 requirements.txt 管理）
+Lib/
+Scripts/
+pywintypes*.dll
+pythoncom*.dll
+
+# 系统生成文件
+desktop.ini
+.pytest_cache/
+
+# Photoshop / 设计文件
+*.psd
+*.ai
+*.sketch

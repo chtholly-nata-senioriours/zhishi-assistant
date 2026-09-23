@@ -1,0 +1,82 @@
+{
+  "version": "1.0.0",
+  "window": {
+    "position": [
+      100,
+      200
+    ],
+    "size": [
+      200,
+      200
+    ],
+    "opacity": 0.9,
+    "always_on_top": true,
+    "show_on_startup": true
+  },
+  "behavior": {
+    "idle_threshold": 30,
+    "sleep_threshold": 300,
+    "focus_threshold": 60,
+    "focus_debounce": 15,
+    "state_switch_cooldown": 1,
+    "sound_enabled": true,
+    "volume": 0.5
+  },
+  "tomato": {
+    "work_duration": 25,
+    "break_duration": 5,
+    "long_break_duration": 15,
+    "long_break_interval": 4,
+    "auto_start_break": false
+  },
+  "quick_launch": {
+    "items": [
+      {
+        "name": "Chrome 浏览器",
+        "command": "start chrome",
+        "category": "浏览器"
+      },
+      {
+        "name": "Edge 浏览器",
+        "command": "start msedge",
+        "category": "浏览器"
+      },
+      {
+        "name": "记事本",
+        "command": "notepad",
+        "category": "工具"
+      },
+      {
+        "name": "计算器",
+        "command": "calc",
+        "category": "工具"
+      },
+      {
+        "name": "VS Code",
+        "command": "code",
+        "category": "开发"
+      },
+      {
+        "name": "PowerShell",
+        "command": "powershell",
+        "category": "系统"
+      },
+      {
+        "name": "文件资源管理器",
+        "command": "explorer",
+        "category": "系统"
+      }
+    ]
+  },
+  "appearance": {
+    "pet_name": "小宠",
+    "pet_model": "default",
+    "theme": "default",
+    "animation_speed": 1.0
+  },
+  "notification": {
+    "enabled": true,
+    "rest_reminder_interval": 60,
+    "rest_reminder_enabled": true
+  }
+}
