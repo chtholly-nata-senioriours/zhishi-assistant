@@ -2586,8 +2586,8 @@ if rows and "app" not in rows[0].keys():
 
 - **新增 `tests/test_category.py`（58 条）+ `tests/test_app_category.py`（49 条）**，
   共 107 条；`tests/test_activity_advisor.py` 更新一处导航断言（3 项 → 4 项）。
-- **全量 855 passed + 1 skipped**（v1.8.0 基线 748：+107，0 回归）。
-- **反向验证 38 条 mutation，0 漏网 / 0 SKIP**。
+- **全量 856 passed + 1 skipped**（v1.8.0 基线 748：+108，0 回归）。
+- **反向验证 40 条 mutation，0 漏网 / 0 SKIP**（38 条分类 + 2 条配色护栏）。
 
 ### 11. 打包与发版核查（2026-10-16，全通过）
 
@@ -2619,6 +2619,42 @@ v1.8.0 条目写「13 → 14 页」，于是 v1.9.0 差点写成「第 15 页」
 三处已改正（§4.16 / §4.17 / §7 改动清单的 v1.7.0 行），并在此留下痕迹 ——
 **文档里的数字也必须回源码核对**，凭印象往后累加迟早会漂。
 
+### 13. 顺带修掉的配色缺陷：分类改了，配色没跟上
+
+做演示页时发现的：`presentation/design/charts.py::_CATEGORY_TOKENS` 还写着**旧分类名**
+（工作 / 沟通 / **浏览**）。于是「学习」「娱乐」双双掉进 `chart_other` 灰色兜底 ——
+时间轴与排行条上只剩蓝 / 黄 / 灰三色，看不出这两类的区别；而「浏览」这个
+已经不存在的类别还白占着一个橙色。**这是 v1.9.0 自己挖的坑**：改了分类体系，
+却没回头改「按类别取色」那张表。
+
+- token **改名 + 新增**：`chart_browse` → `chart_fun`，新增 `chart_study`（深浅两套都补）。
+  `chart_work` 的注释从「深度工作」改正为「工作」—— 深度工作现在是工作 + 学习。
+- **结构性护栏**（这才是重点）：`test_every_category_has_a_distinct_chart_color`
+  **不写死名单**，直接遍历 `CATEGORIES` —— 除「其他」外每一类都必须有非兜底配色，
+  且五色两两不同。旧用例只钉了当时那四个名字，所以这次漏配**一条断言都不会红**；
+  新用例把「清单同步」变成可执行判据。
+- 反向验证：把「学习」改回兜底灰 → 红；让「学习」「娱乐」共用一色 → 红。
+- `pyz_check`：符号清单 +`chart_study`/`chart_fun`，`chart_browse` 进 `FORBIDDEN_STRINGS`。
+- 预览脚本的假数据同步（`s13` 的「浏览」→「娱乐」），并给两个假插件补上
+  「协同记录」页（v1.8.0）与「应用分类」页（v1.9.0）要用的方法 ——
+  **控制中心的 `reload()` 是全量刷新的**，缺方法直接崩，与当前渲染哪一页无关。
+  第一版还把 `count_decisions` 写成无参，`reload()` 传 action 时 TypeError：
+  **假替身的参数表就是接口契约**，少一个参数等于换了接口。
+
+> ⚠ `dist/知时助手-v1.9.0-win64{,.zip}` 是**修复之前**打的包（包内那两类仍是灰的）。
+> 源码已修，重新打包即可 —— 版本号没动。
+
+### 14. `spikes/s19_demo_page.py`：对外演示页
+
+把 10 张界面截图 base64 内嵌成一个**单文件** HTML 落到桌面，零外部依赖
+（无 CDN、无字体、无 JS 库），断网双击也能开。为什么做成脚本而不是手写 HTML：
+手写的话图片一改就得手工重贴 base64，迟早出现「图换了、页面还是旧图」。
+分类依据文案**逐字取自 `category.CATEGORY_RULES`**，不在页面里另写一份
+（同产品内「应用分类」页的纪律）。
+
+验证：用 Playwright（复用系统已装的 Chromium）打开并检查 ——
+10 张图全加载、**外部 http 引用 0**、7 个分区齐全、控制台与页面零报错。
+
 ---
 
 ## 5. 下一步做什么
@@ -2627,7 +2663,7 @@ v1.8.0 条目写「13 → 14 页」，于是 v1.9.0 差点写成「第 15 页」
 **v1.7.0（宠物子系统移除 + 隐私与数据页）已完成**：代码、测试、打包与发版核查，见 §4.15。
 **v1.8.0（人机协同证据链 P1-4 + API Key 接入系统密钥库 P1-5）已完成**，见 §4.16。
 **v1.9.0（分类口径重写 + 手动归类 + 「应用分类」页）已完成**，见 §4.17。
-测试基线 **855 passed + 1 skipped**。剩下的是**真实环境实测**：
+测试基线 **856 passed + 1 skipped**。剩下的是**真实环境实测**：
 
 1. ~~**填 API Key**~~ ✅ **已完成**（2026-10-11）：`spikes/api_check.py` 三条链路
    （文本流式 / 翻译 / 视觉）**全 PASS**。过程中修掉三个真问题，见 §4.3 第 6 节 ——
@@ -2725,7 +2761,7 @@ v1.8.0 条目写「13 → 14 页」，于是 v1.9.0 差点写成「第 15 页」
 | 动画 | `presentation/anim_controller.py` | `AnimController` 45；`play()` 321；数值动画 `_numeric_rotate` 552 / `_numeric_bounce` 600；**`_numeric_origin`（位移起点，被打断时还原）** + `_stop_numeric()` |
 | 对话框基类 | `presentation/dialogs.py` | `AppDialog` 63（**统一基类** + `WindowStaysOnTopHint`）；`MessageDialog` 219；`message_box()` 291 |
 | **应用主题源（唯一）** | `presentation/design/theme.py` | `theme()` / `set_theme()`；`color()` / `qss()` / `qt_palette()` / `changed` 信号；`appearance.theme` = `default`\|`light`\|`dark` |
-| **设计 token** | `presentation/design/tokens.py` | `PALETTES`（`LIGHT`/`DARK`）+ `SPACING` / `RADIUS` / `FONT_SIZE` / `ICON_SIZE` / `ROW_HEIGHT` / `NAV_WIDTH`；**P2.14 加 6 个图表色**（`chart_work` / `chart_comm` / `chart_browse` / `chart_other` / `chart_idle` / `chart_track` —— 后两个是铺满整条的底色，**必须与 `window`/`surface` 拉得开**）；**P2.19 加 `warning_soft`**（warning 的软底，「专注中」这类**非交互态**用 —— 灰会被读成「坏了」） |
+| **设计 token** | `presentation/design/tokens.py` | `PALETTES`（`LIGHT`/`DARK`）+ `SPACING` / `RADIUS` / `FONT_SIZE` / `ICON_SIZE` / `ROW_HEIGHT` / `NAV_WIDTH`；**P2.14 加 6 个图表色**，**v1.9.0 增为 7 个**（`chart_work` / `chart_study` / `chart_comm` / `chart_fun` / `chart_other` / `chart_idle` / `chart_track` —— `chart_browse` 随分类体系改名 `chart_fun`；后两个是铺满整条的底色，**必须与 `window`/`surface` 拉得开**）；**P2.19 加 `warning_soft`**（warning 的软底，「专注中」这类**非交互态**用 —— 灰会被读成「坏了」） |
 | **全应用样式表** | `presentation/design/qss.py` | `build_qss(theme)`（**零 hex 字面量**）、`build_qt_palette()`；选择器纪律见 §2 规则 14/15 |
 | **图标库** | `presentation/design/icons.py` | `ICONS`（**52 个**内联 Lucide SVG；P2.18 加 `pause`，v1.7.0 加 `shield`，v1.8.0 加 `file-check`）；`themed(name, role)` 按主题着色；未知名字 → 空图标 |
 | **通用控件** | `presentation/design/widgets.py` | `ThemedWidget`（订阅 `theme().changed`）/ ToolButton / Button / IconButton / Card / NavList（P2.14 加 `add_group` 分组标题行）/ LogView / EmptyState（P2.14 加 `set_text`）/ SegmentedControl / ToggleSwitch / BusyIndicator |
@@ -3176,3 +3212,9 @@ petgame_demo/
 | `tests/test_category.py` | **v1.9.0 新增** | 58 条：分类项一致性 / 四张进程表两两不相交 / 浏览器不与工具表相交 / **8 个误匹配回归** / 进程名精确匹配 / 浏览器不定分类 / 三层判定 / 标题优先级 / 中文站点名 / 依据不含标题原文 / `_compile_title_regex` 机制 / 大小写归一 / monkeypatch 把「浏览器排除」变可观测 / `apply_overrides` 6 条 |
 | `tests/test_app_category.py` | **v1.9.0 新增** | 49 条：Store 写入撤销与受限枚举 / **四条读路径逐条断言覆盖生效** / `_rows` 护栏 raise / 原始列不被篡改 / `totals_by_app` 保留 `auto_category` / `clear()` 不动偏好 / 插件接口与数据指纹 / 页面（说明卡 / 两列对照 / 强调色 / 下拉 / 写入 / 重置 / 空态整页自洽 / 表体高度）/ 混合类别取占比最大 / `daily_totals` 把学习算进深度工作 |
 | `tests/test_activity_advisor.py` | **v1.9.0** | `test_page_is_registered_under_data_group` 断言改为 `["今日", "趋势", "应用分类", "协同记录"]` |
+| `presentation/design/tokens.py` | **v1.9.0** | 图表色 6 → 7：`chart_browse` 改名 **`chart_fun`**，新增 **`chart_study`**（深浅两套）；`chart_work` 注释「深度工作」→「工作」 |
+| `presentation/design/charts.py` | **v1.9.0** | `_CATEGORY_TOKENS` 改为五类（工作 / 学习 / 沟通 / 娱乐 / 其他）—— 旧表还写着「浏览」，导致「学习」「娱乐」掉进灰色兜底 |
+| `tests/test_design.py` | **v1.9.0** | `_CHART_KEYS` 6 → 7；`test_category_color_token_mapping` 改五类；**新增 `test_every_category_has_a_distinct_chart_color`**（遍历 `CATEGORIES` 的完整性护栏） |
+| `spikes/s13_today_preview.py` | **v1.9.0** | 假数据类别「浏览」→「娱乐」；总结文案的数字与实际数据对齐；假插件补齐 `app_totals` / `app_categories` / `decision_log` / `count_decisions` / `export_decisions`（`reload()` 是全量的） |
+| `spikes/s17_decision_preview.py` | **v1.9.0** | 同上：假插件补 `app_totals` / `app_categories` |
+| `spikes/s19_demo_page.py` | **v1.9.0 新增** | 生成对外的**单文件** Web 演示页（10 张截图 base64 内嵌，零外部依赖），产物落桌面 |

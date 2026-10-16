@@ -102,6 +102,29 @@
 - **动作反馈写在 `reload()` 之后** —— `reload()` 会把状态行重置成常驻说明，
   先写就被盖掉，用户点完下拉等于没有任何反馈（本项目踩过好几次的老毛病）。
 
+### 修复 · 图表配色没跟着分类体系改（同日追加）
+
+改分类时漏改了 `presentation/design/charts.py::_CATEGORY_TOKENS` —— 它还写着旧名字
+（工作 / 沟通 / **浏览**）。后果：「学习」「娱乐」双双掉进 `chart_other` 灰色兜底，
+时间轴与排行条上只剩蓝 / 黄 / 灰三色，看不出这两类的区别；
+而「浏览」这个已经不存在的类别还白占着一个橙色。
+
+- **token 改名 + 新增**：`chart_browse` → **`chart_fun`**，新增 **`chart_study`**
+  （深浅两套都补）。`chart_work` 的注释从「深度工作」改正为「工作」——
+  深度工作现在是「工作 + 学习」，沿用旧注释会误导。
+- **加了结构性护栏** `test_every_category_has_a_distinct_chart_color`：
+  不写死名单，直接遍历 `CATEGORIES` —— 除「其他」外每一类都必须有非兜底配色，
+  且五色两两不同。反向验证过：把「学习」改回兜底灰 → 红；让「学习」「娱乐」共用一色 → 红。
+- `pyz_check` 符号清单跟着改（+`chart_study` / `chart_fun`），并把 `chart_browse`
+  加进 `FORBIDDEN_STRINGS` —— 残留即还有地方按旧分类名取色。
+- 预览脚本的假数据同步改（`s13_today_preview.py` 的「浏览」→「娱乐」），
+  并把「协同记录」页（v1.8.0）与「应用分类」页（v1.9.0）新增的插件方法补进
+  两个假插件 —— 控制中心的 `reload()` 是**全量**刷新的，缺方法会直接崩，
+  与当前渲染的是哪一页无关。
+
+> ⚠ `dist/知时助手-v1.9.0-win64{,.zip}` 是**这次修复之前**打的包：包内时间轴的
+> 「学习」「娱乐」仍是灰色。源码已修，重新打包即可（版本号未动）。
+
 ### 内部
 - `sensor/window_monitor.py` 删掉 `WORK_KEYWORDS` / `ENTERTAIN_KEYWORDS` /
   `_hit` / `_classify_window` 的实现，改为转接 `category.explain`；
@@ -109,6 +132,8 @@
 - `pyz_check` 清单按版本追加 `engine.activity.category` 进 `REQUIRED_MODULES`、
   进 `EXTRA_MODULES`，并加入 v1.9.0 的符号与字符串。
 - 版本号 1.8.0 → 1.9.0（`config.default.json` / `data/config_manager.py` / `installer.iss`）。
+- `spikes/s19_demo_page.py`（新）—— 生成对外的**单文件** Web 演示页
+  （10 张界面截图 base64 内嵌，零外部依赖），产物落在桌面。
 
 ### 验证
 - **新增 `tests/test_category.py`（58 条）+ `tests/test_app_category.py`（49 条）**，
@@ -118,8 +143,8 @@
   **覆盖在四条读路径上逐条生效**、原始 category 列不被篡改、
   `totals_by_app` 保留系统判定、`clear()` 不动偏好、数据指纹随归类变化、
   空态整页自洽、表体高度随行数、动作反馈不被盖掉、深度工作口径一处收口。
-- **全量 855 passed + 1 skipped**（v1.8.0 基线 748：+107 新用例，0 回归）。
-- **反向验证 38 条 mutation，0 漏网 / 0 SKIP**。
+- **全量 856 passed + 1 skipped**（v1.8.0 基线 748：+108，0 回归）。
+- **反向验证 40 条 mutation，0 漏网 / 0 SKIP**（38 条分类与手动归类 + 2 条图表配色）。
 
 ### 发布（2026-10-16）
 

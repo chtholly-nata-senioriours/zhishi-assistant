@@ -310,9 +310,10 @@ REQUIRED_STRINGS = [
     "今日深度工作",          # ⑤ 托盘悬停提示
     "时间构成",             # ④ 趋势页
     "最容易被打断",          # ④ 趋势页
-    "chart_work",           # ② 6 个图表色 token
+    "chart_work",           # ② 7 个图表色 token（v1.9.0：+chart_study/chart_fun）
+    "chart_study",
     "chart_comm",
-    "chart_browse",
+    "chart_fun",
     "chart_other",
     "chart_idle",
     "chart_track",
@@ -457,6 +458,11 @@ FORBIDDEN_STRINGS = [
     # 精确匹配：残留 = 还有地方在用那套 `"git" in text` 的匹配。
     "WORK_KEYWORDS",
     "ENTERTAIN_KEYWORDS",
+    # --- v1.9.0：图表配色跟着分类体系走 ---
+    # 「浏览」已不是分类之一（五类是 工作/学习/沟通/娱乐/其他），
+    # 它对应的 token 名 `chart_browse` 也一并改名为 `chart_fun`。
+    # 精确匹配：残留 = 还有地方按旧分类名取色（那两类会掉进灰色兜底）。
+    "chart_browse",
 ]
 
 # 额外按模块收符号（不在 engine.activity 下的）

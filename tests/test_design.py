@@ -717,7 +717,7 @@ def test_panel_has_raise_to_front():
 # 9. 图表与建议卡（P2.14）
 # ============================================================
 
-_CHART_KEYS = ("chart_work", "chart_comm", "chart_browse",
+_CHART_KEYS = ("chart_work", "chart_study", "chart_comm", "chart_fun",
                "chart_other", "chart_idle", "chart_track")
 
 
@@ -780,11 +780,41 @@ def test_category_color_token_mapping():
     from presentation.design.charts import category_color_token
 
     assert category_color_token("工作") == "chart_work"
+    assert category_color_token("学习") == "chart_study"
     assert category_color_token("沟通") == "chart_comm"
-    assert category_color_token("浏览") == "chart_browse"
+    assert category_color_token("娱乐") == "chart_fun"
     assert category_color_token("其他") == "chart_other"
     assert category_color_token(None) == "chart_other"
     assert category_color_token("") == "chart_other"
+
+
+def test_every_category_has_a_distinct_chart_color():
+    """`CATEGORIES` 里每一类都必须有**专属**颜色，且互不重复。
+
+    这是「图表配色」与「分类引擎」两处清单的**同步护栏**。v1.9.0 改分类体系
+    （新增「学习」「娱乐」，删掉「浏览」）时漏改了 `charts._CATEGORY_TOKENS`，
+    结果两类双双掉进 `chart_other` 灰色兜底 —— 时间轴上只剩三色，
+    而**没有任何断言会红**（旧用例只钉了当时那四个名字）。
+
+    所以这里不写死名单，直接遍历 `CATEGORIES`：
+      · 除「其他」外，每一类都要映射到非兜底 token（「其他」本就是兜底色，
+        它落到 DEFAULT 是**对的**，所以先把它排除掉，否则用例自己会永远红）；
+      · 五类的 token 两两不同（两类共用一色 → 图上分不出来 → 当场红）。
+    """
+    from engine.activity.category import CATEGORIES, OTHER
+    from presentation.design.charts import (
+        DEFAULT_CATEGORY_TOKEN,
+        category_color_token,
+    )
+
+    tokens = {cat: category_color_token(cat) for cat in CATEGORIES}
+
+    assert tokens[OTHER] == DEFAULT_CATEGORY_TOKEN, "「其他」就该走兜底色"
+    fell_back = {c: t for c, t in tokens.items()
+                 if c != OTHER and t == DEFAULT_CATEGORY_TOKEN}
+    assert not fell_back, f"这些类别掉进了兜底灰，没有专属配色: {fell_back}"
+    assert len(set(tokens.values())) == len(CATEGORIES), (
+        f"配色有重复（两类共用一色，图上分不出来）: {tokens}")
 
 
 def test_stat_tile_shows_label_and_value():

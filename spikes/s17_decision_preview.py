@@ -217,6 +217,17 @@ class _StubPlugin:
     def clear_data(self) -> int:
         return 0
 
+    def app_totals(self, days: int = 7) -> list:
+        """「应用分类」页要读这个（v1.9.0 新增页面）。
+
+        控制中心的 `reload()` 是**全量**刷新的，缺了这个方法会 AttributeError，
+        哪怕本脚本只渲染「协同记录」页。
+        """
+        return []
+
+    def app_categories(self) -> dict:
+        return {}
+
 
 class _StubPluginManager:
     def __init__(self, plugin):

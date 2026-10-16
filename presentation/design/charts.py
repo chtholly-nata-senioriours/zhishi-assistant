@@ -35,10 +35,20 @@ from .tokens import ICON_SIZE, SPACING
 from .widgets import ThemedWidget
 
 #: 类别 → 颜色 token。没匹配上的走 `chart_other`。
+#:
+#: 这里的类别名必须与 `engine.activity.category.CATEGORIES` **逐字一致**
+#: （工作 / 学习 / 沟通 / 娱乐 / 其他）。v1.9.0 改分类体系时漏了这一处 ——
+#: 旧映射还写着「浏览」，于是「学习」「娱乐」双双掉进灰色兜底，
+#: 时间轴上只剩蓝 / 黄 / 灰三色，看不出学习与娱乐的区别。
+#: 刻意**不 import** 引擎（design 层是叶子模块，不该把 sqlite 那一串拖进来），
+#: 改用 `tests/test_design.py::test_every_category_has_a_distinct_chart_color`
+#: 做完整性护栏：`CATEGORIES` 里多一类而这里没跟，测试当场红。
 _CATEGORY_TOKENS: Dict[str, str] = {
     "工作": "chart_work",
+    "学习": "chart_study",
     "沟通": "chart_comm",
-    "浏览": "chart_browse",
+    "娱乐": "chart_fun",
+    "其他": "chart_other",
 }
 
 DEFAULT_CATEGORY_TOKEN = "chart_other"

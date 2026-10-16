@@ -117,9 +117,10 @@ class Palette:
     #     · 排行条的底槽看不见，就分不清那条彩色条「占了多大比例」。
     #   所以这两个值都必须与 window / surface / surface_alt 拉得开，
     #   由 `tests/test_design.py::test_chart_track_and_idle_visible_on_page_bg` 钉死。
-    chart_work: str        # 深度工作
+    chart_work: str        # 工作
+    chart_study: str       # 学习
     chart_comm: str        # 沟通
-    chart_browse: str      # 浏览
+    chart_fun: str         # 娱乐
     chart_other: str       # 其他
     chart_idle: str        # 空闲 / 无记录（**必须与 window/surface 拉得开**，见下）
     chart_track: str       # 条形底槽（同上）
@@ -177,8 +178,9 @@ def _make_dark() -> Palette:
         error="#F14C4C",
         info="#4C8DFF",
         chart_work="#4C8DFF",
+        chart_study="#5FBF9F",
         chart_comm="#D7BA7D",
-        chart_browse="#CE9178",
+        chart_fun="#CE9178",
         chart_other="#7A7A7A",
         chart_idle="#3A3A3E",
         chart_track="#3C3C3C",
@@ -228,8 +230,9 @@ def _make_light() -> Palette:
         error="#C42B1C",
         info="#0067C0",
         chart_work="#5B9BD5",
+        chart_study="#3E9E7E",
         chart_comm="#E8A33D",
-        chart_browse="#E07B5A",
+        chart_fun="#E07B5A",
         chart_other="#A8A8A0",
         chart_idle="#E0E0DC",
         chart_track="#DCDCDC",

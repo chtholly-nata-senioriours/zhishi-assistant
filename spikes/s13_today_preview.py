@@ -91,13 +91,18 @@ def _seg(day: float, app_name: str, cat: str, h1: int, m1: int, h2: int, m2: int
 
 
 def _fake_day() -> list:
-    """一天的活动 —— 与设计稿里那张时间轴一致。"""
+    """一天的活动 —— 与设计稿里那张时间轴一致。
+
+    类别名必须用 `engine.activity.category.CATEGORIES` 里的那五个
+    （工作 / 学习 / 沟通 / 娱乐 / 其他）—— 写旧名（如「浏览」）的话，
+    图表取色会掉进灰色兜底，图上看不出区别，而**这正是要目检的东西**。
+    """
     day = day_start(time.time())
     return [
         _seg(day, "微信", "沟通", 8, 0, 9, 30),
         _seg(day, "VS Code", "工作", 9, 30, 11, 0),
         _seg(day, "微信", "沟通", 11, 0, 11, 20),
-        _seg(day, "Chrome", "浏览", 11, 20, 12, 0),
+        _seg(day, "Chrome", "娱乐", 11, 20, 12, 0),
         # ↓ 下面三段会被合并成一整段 13:30–15:00 ——
         #   后两段是「切走几十秒又切回来」留下的碎片，
         #   不合并的话时间轴上就是两根看不清的细线。
@@ -146,7 +151,7 @@ def _fake_history(days: int = 60) -> list:
         out.extend([
             _seg(day, "VS Code", "工作", 9, 30, 11, 0),
             _seg(day, "微信", "沟通", 11, 0, 11, 20),     # 上午这几切造出 11 点的峰
-            _seg(day, "Chrome", "浏览", 11, 20, 12, 0),
+            _seg(day, "Chrome", "娱乐", 11, 20, 12, 0),
             _seg(day, "VS Code", "工作", 13, 30, 15, 0),
             _seg(day, "微信", "沟通", 15, 0, 15, 30),
             _seg(day, "VS Code", "工作", 15, 30, 17, 0),
@@ -301,6 +306,34 @@ class _StubPlugin:
     def clear_data(self):
         return 0
 
+    def app_totals(self, days=7):
+        """「应用分类」页要读这个。
+
+        控制中心的 `reload()` 是**全量**刷新的（不是只刷当前页），所以哪怕
+        这里只渲染「今日」/「趋势」，缺了这个方法一样会 AttributeError ——
+        加页面时漏了假插件，是这一类脚本最容易踩的坑。
+        """
+        return []
+
+    def app_categories(self):
+        return {}
+
+    def decision_log(self, limit=200, action=""):
+        """「协同记录」页要读这个（v1.8.0 新增页面）—— 同 `app_totals`：
+        `reload()` 是全量的，缺了照样崩。
+
+        ⚠ 签名要与真插件**逐字一致**（`limit` / `action` 都有默认值）：
+        第一版把 `count_decisions` 写成无参，`reload()` 传 action 时直接 TypeError。
+        假替身的参数表就是接口契约，少一个参数等于换了接口。
+        """
+        return []
+
+    def count_decisions(self, action=""):
+        return 0
+
+    def export_decisions(self):
+        return ""
+
 
 class _StubTimer:
     """假番茄钟 —— 专注卡与悬浮球都靠 `get_status()` 读它。"""
@@ -368,8 +401,8 @@ def _snap_page(segments, name: str, theme_name: str, *, enabled: bool = True,
     # 所以这里必须给一段真总结，否则目检图里根本看不到那块。
     advice = json.dumps(
         {
-            "summary": "今天 5 小时里有 2 小时是深度工作，但上午被切得很碎，"
-                       "下午 15:00 之后几乎没连上过 30 分钟。",
+            "summary": "今天 7 小时 30 分里有 4 小时 30 分是深度工作，"
+                       "但上午被切得很碎，下午 15:00 之后几乎没连上过 30 分钟。",
             "advices": [
                 {"headline": "上午的深度工作被切成 4 段，每段不到 40 分钟",
                  "evidence": ["微信在 08:00–12:00 打断 9 次", "VS Code 最长连续 1h30m"],
