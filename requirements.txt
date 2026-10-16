@@ -6,9 +6,17 @@ PySide6>=6.5.0
 pynput>=1.7.6
 
 # ===== Windows 平台依赖 =====
-# 窗口管理、系统托盘图标
+# 窗口管理、系统托盘图标、全局热键（RegisterHotKey）、前台焦点还原
 pywin32>=306; platform_system=='Windows'
 
+# ===== AI 链路依赖（engine/ai + ai_assistant 插件）=====
+# SSE 流式请求（engine/ai/providers/openai_compat.py）
+requests>=2.31.0
+
 # ===== 可选依赖 =====
-# 如果你需要更丰富的桌面通知
-# pyqt-toast-notification>=0.5.0
+# API 密钥安全存储（engine/ai/__init__.py 中惰性导入，缺失时回退到配置文件明文）
+# 建议安装：pip install keyring
+# keyring>=24.0.0
+
+# giwifi 插件专用（若不需要该插件可不装）
+# pycryptodome>=3.19.0     # 提供 Crypto.* 命名空间

@@ -1,0 +1,65 @@
+{
+  "spike": "S2",
+  "title": "选中文本获取方案",
+  "hypothesis": "备份剪贴板 → Ctrl+C → 读剪贴板 → 还原，机制可用且还原无损",
+  "criterion": "剪贴板保真 + 真实取值 + 边界场景 全部通过 → PASS",
+  "verdict": "PASS",
+  "checks": [
+    {
+      "desc": "备份包含 text/plain",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "desc": "备份包含 text/html",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "desc": "成功取到选中文本",
+      "ok": true,
+      "detail": "'SELECTION_PROBE_12345'"
+    },
+    {
+      "desc": "纯文本被无损还原",
+      "ok": true,
+      "detail": "'CLIPBOARD_SENTINEL_TEXT'"
+    },
+    {
+      "desc": "HTML 被无损还原",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "desc": "格式数量未减少",
+      "ok": true,
+      "detail": "2 → 2"
+    },
+    {
+      "desc": "无选中时返回空串且不抛异常",
+      "ok": true,
+      "detail": "''"
+    },
+    {
+      "desc": "无选中后剪贴板仍被还原",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "desc": "空剪贴板时不崩",
+      "ok": true,
+      "detail": "''"
+    }
+  ],
+  "metrics": {
+    "备份到的 MIME 格式数": 2,
+    "编辑器是否持有焦点": true,
+    "应用焦点控件": "QTextEdit",
+    "选中字符数": 21,
+    "取到的选中文本": "'SELECTION_PROBE_12345'"
+  },
+  "notes": [
+    "机制层通过；真实应用矩阵（Chrome/VSCode/记事本/Word/微信）需人工补测"
+  ],
+  "timestamp": "2026-10-10 13:46:34"
+}

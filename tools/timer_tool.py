@@ -17,7 +17,8 @@ Usage:
     from tools.timer_tool import TomatoTimer
 
     timer = TomatoTimer()
-    timer.start(work_duration=25)  # 25分钟
+    timer.start("work")            # 按构造时的 work_duration
+    timer.start("work", minutes=45)  # 或指定这一次的时长
     # ...
     timer.pause()
     timer.resume()
@@ -71,6 +72,17 @@ class TomatoTimer:
         self._timer_thread = None
         self._running = False
         self._lock = threading.Lock()
+        #: 「第几轮计时」。每次 start / resume / stop 都 +1，线程带着自己那轮
+        #: 的号进来，发现号变了就直接退出。
+        #:
+        #: 为什么必须有它（P2.18 修的真 bug）
+        #:     旧线程在 `time.sleep(1)` 里睡着时，`stop()` 把 `_running` 置假；
+        #:     用户接着开新一轮，`_running` 又被置真 —— 旧线程醒来看到的
+        #:     是「还在跑」，于是**两个线程一起倒扣秒数**，倒计时跑成两倍速。
+        #:     以前 `stop()` 只有番茄钟对话框能触发，很难撞上；
+        #:     P2.18 给「今日」页加了「结束专注」按钮，`停 → 再开` 变成常规操作，
+        #:     不修就是必现。
+        self._epoch = 0
 
     @property
     def remaining_minutes(self) -> int:
@@ -98,12 +110,21 @@ class TomatoTimer:
 
     # ----- 控制方法 -----
 
-    def start(self, timer_type: str = "work") -> bool:
+    def start(self, timer_type: str = "work", minutes: int = 0) -> bool:
         """
         开始计时
 
         Args:
             timer_type: "work" 或 "break" 或 "long_break"
+            minutes: 只对 `work` 有意义 —— 本次要专注多少分钟。
+                0 / 负数 / 非数字时用 `self.work_duration`。
+
+                为什么需要这个参数（P2.18 修的真 bug）
+                    以前 `start("work")` 只认 `self.work_duration`，
+                    调用方给的分钟数**被静默丢掉**。建议卡上写着
+                    「开始 45 分钟专注」，点下去实际跑的是 25 分钟 ——
+                    界面说的和做的不一致，而且从日志里看不出来。
+                    时长是「这一次」的属性，不该只能靠构造时的全局值决定。
 
         Returns:
             是否成功启动
@@ -116,7 +137,11 @@ class TomatoTimer:
 
             # 根据类型设置时长
             if timer_type == "work":
-                self._total_seconds = self.work_duration * 60
+                try:
+                    wanted = int(minutes)
+                except (TypeError, ValueError):
+                    wanted = 0
+                self._total_seconds = (wanted if wanted > 0 else self.work_duration) * 60
             elif timer_type == "break":
                 self._total_seconds = self.break_duration * 60
             elif timer_type == "long_break":
@@ -129,8 +154,7 @@ class TomatoTimer:
             self._running = True
 
         # 启动计时线程
-        self._timer_thread = threading.Thread(target=self._timer_loop, daemon=True)
-        self._timer_thread.start()
+        self._spawn()
 
         # 发布事件
         event_bus.publish("TIMER_START", {
@@ -167,8 +191,7 @@ class TomatoTimer:
 
         # 重新开始计时
         self._running = True
-        self._timer_thread = threading.Thread(target=self._timer_loop, daemon=True)
-        self._timer_thread.start()
+        self._spawn()
 
         event_bus.publish("TIMER_RESUME", {
             "type": self.timer_type,
@@ -184,6 +207,9 @@ class TomatoTimer:
 
         with self._lock:
             self.state = TimerState.IDLE
+            # 换号：还在 `sleep` 里的旧线程醒来会发现号变了，直接退出 ——
+            # 否则用户「停 → 再开」时会有两个线程一起倒扣秒数（倒计时两倍速）。
+            self._epoch += 1
 
         if was_running:
             event_bus.publish("TIMER_END", {
@@ -194,13 +220,33 @@ class TomatoTimer:
 
         return True
 
-    def _timer_loop(self):
-        """计时线程循环"""
+    def _spawn(self) -> None:
+        """开一轮新的计时线程，并给它一个轮次号。"""
+        with self._lock:
+            self._epoch += 1
+            epoch = self._epoch
+        self._timer_thread = threading.Thread(
+            target=self._timer_loop, args=(epoch,), daemon=True
+        )
+        self._timer_thread.start()
+
+    def _timer_loop(self, epoch: int):
+        """计时线程循环。
+
+        `epoch` 是这一轮的号。**每处读共享状态前都要先核对号**：
+        号对不上说明这一轮已经被 `stop()` / 新一轮取代，直接退出 ——
+        不然旧线程会和新的那个一起倒扣秒数。
+        """
         while self._running and self._remaining_seconds > 0:
+            with self._lock:
+                if epoch != self._epoch:
+                    return
             # 每秒更新一次
             time.sleep(1)
 
             with self._lock:
+                if epoch != self._epoch:
+                    return
                 if self.state != TimerState.RUNNING:
                     break
 
@@ -215,8 +261,12 @@ class TomatoTimer:
                     "formatted": self.formatted_time,
                 })
 
-        # 计时结束
-        if self._remaining_seconds <= 0 and self._running:
+        # 计时结束（只有当前这一轮的线程才有资格宣布）
+        with self._lock:
+            if epoch != self._epoch:
+                return
+            finished = self._remaining_seconds <= 0 and self._running
+        if finished:
             self._on_timer_finished()
 
     def _on_timer_finished(self):
@@ -247,6 +297,7 @@ class TomatoTimer:
             "type": self.timer_type,
             "progress": self.progress,
             "remaining": self._remaining_seconds,
+            "total": self._total_seconds,
             "formatted": self.formatted_time,
             "session_count": self._session_count,
             "today_count": self._today_count,

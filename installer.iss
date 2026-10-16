@@ -1,12 +1,12 @@
-; 小小桌宠 Demo 安装脚本
+; 知时助手 Demo 安装脚本
 ; 使用方法: 右键此文件 → Compile (需要安装 Inno Setup)
 ; 下载: https://jrsoftware.org/isdl.php
 
-#define MyAppName "小小桌宠"
-#define MyAppVersion "1.0.0"
+#define MyAppName "知时助手"
+#define MyAppVersion "1.9.0"
 #define MyAppPublisher "PetDemo"
 #define MyAppURL ""
-#define MyAppExeName "小小桌宠Demo.exe"
+#define MyAppExeName "知时助手.exe"
 
 [Setup]
 AppName={#MyAppName}
@@ -15,7 +15,7 @@ AppPublisher={#MyAppPublisher}
 DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 OutputDir=Output
-OutputBaseFilename=小小桌宠_Setup
+OutputBaseFilename=知时助手_Setup
 Compression=lzma
 SolidCompression=yes
 UninstallDisplayIcon={app}\{#MyAppExeName}
@@ -24,7 +24,7 @@ SetupIconFile=图标.ico
 
 
 [Files]
-Source: "dist\小小桌宠Demo\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "dist\知时助手\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "图标.ico"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]

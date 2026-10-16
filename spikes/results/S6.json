@@ -1,0 +1,27 @@
+{
+  "spike": "S6",
+  "title": "窗口生命周期：关闭对话框不应退出应用",
+  "hypothesis": "Tool 类型常驻窗口不计入「最后窗口」，导致关闭对话框时应用退出",
+  "criterion": "默认设置下退出（复现）+ 关闭开关后存活（修复）+ 非 Tool 对照存活 → PASS",
+  "verdict": "PASS",
+  "checks": [
+    {
+      "desc": "复现：默认设置 + Tool 常驻窗口 → 关掉对话框后应用退出",
+      "ok": true,
+      "detail": "已复现"
+    },
+    {
+      "desc": "修复：setQuitOnLastWindowClosed(False) → 应用存活",
+      "ok": true,
+      "detail": "已修复"
+    },
+    {
+      "desc": "对照：常驻窗口非 Tool → 默认设置下也存活",
+      "ok": true,
+      "detail": "印证根因是 Tool 类型"
+    }
+  ],
+  "metrics": {},
+  "notes": [],
+  "timestamp": "2026-10-11 21:31:13"
+}

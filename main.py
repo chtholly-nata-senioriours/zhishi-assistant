@@ -1,4 +1,4 @@
-"""基础版桌宠 - 主入口
+"""知时助手 - 主入口
 
 一个可爱的桌面宠物，能感知你的工作状态，
     在你专注时安静陪伴，在你休息时活泼互动。
@@ -92,18 +92,18 @@ from engine.rule_engine import create_rule_engine
 
 from presentation.ui_renderer import UIManager
 from presentation.anim_controller import AnimController
-from presentation.pet_model import model_manager
 from presentation.tray_icon import TrayIcon
 
 from extensions.plugin_manager import PluginManager
+from native.hotkey import HotkeyService
 
 
 # ============================================================
-# 桌宠主类
+# 主程序
 # ============================================================
 
 class PetDemo:
-    """桌宠主程序"""
+    """知时助手主程序"""
 
     def __init__(self):
         self._running = False
@@ -132,16 +132,18 @@ class PetDemo:
         # 系统托盘
         self.tray_icon = None
 
+        # 全局热键服务（v2 新增，UI 就绪后创建）
+        self.hotkeys = None
+
         # 工具层（由插件负责初始化）
         self.timer = None
-        self.note_manager = None
-        self.quick_launch = None
+        # 插件挂上来的能力（便签 / 快捷启动已随 P2.20 移除，此处不再预留）
 
         # 信号处理
         if os.name != "nt":
             signal.signal(signal.SIGINT, self._signal_handler)
 
-        print("PetDemo 桌宠初始化完成")
+        print("知时助手 初始化完成")
 
     def _signal_handler(self, signum, frame):
         """信号处理"""
@@ -149,12 +151,12 @@ class PetDemo:
         self.stop()
 
     def start(self):
-        """启动桌宠"""
+        """启动知时助手"""
         if self._running:
             return
 
         self._running = True
-        print("\n正在启动桌宠...")
+        print("\n正在启动知时助手...")
 
         # --- 初始化数据层 ---
         print("  -> 初始化配置...")
@@ -188,10 +190,13 @@ class PetDemo:
         print("  -> 启动UI...")
         self._start_ui()
 
+        # --- 通知插件 UI 已就绪（T3）：面板预热、热键注册都在此发生 ---
+        self._notify_ui_ready()
+
         # --- 启动主循环 ---
-        print("\n桌宠已启动！")
-        print("   右键点击桌宠打开菜单")
-        print("   拖动桌宠可移动位置")
+        print("\n知时助手已启动！")
+        print("   右键点击悬浮球打开菜单")
+        print("   拖动悬浮球可移动位置")
 
         self._setup_state_update()
 
@@ -238,7 +243,7 @@ class PetDemo:
         """状态变化回调"""
         data = event.get("data", {})
         pet_state = data.get("to", "unknown")
-        print(f"  桌宠状态: {data.get('from', '?')} -> {pet_state}")
+        print(f"  状态: {data.get('from', '?')} -> {pet_state}")
 
     def _on_mouse_click(self, event):
         """鼠标点击回调"""
@@ -246,31 +251,36 @@ class PetDemo:
         log_manager.debug("鼠标点击")
 
     def _on_pet_clicked(self, event):
-        """桌宠被点击"""
-        print("  桌宠被点击了！")
+        """悬浮球被点击"""
+        print("  悬浮球被点击了！")
 
     def _start_ui(self):
         """启动UI"""
         # 注入插件管理器到 UI
         if self.plugin_manager:
             self.ui_manager.set_plugin_manager(self.plugin_manager)
+        # 注入自身：控制中心要读状态机 / 插件管理器
+        self.ui_manager.set_pet_app(self)
 
         self.ui_manager.initialize()
         self.ui_manager.show()
 
         # 动画控制器
-        if self.ui_manager.window:
+        window = self.ui_manager.window
+        if window:
             self.anim_controller = AnimController()
-            asset_dir = model_manager.get_current_asset_dir()
-            default_img = model_manager.get_current_default_image() or ""
-            self.anim_controller.set_target(
-                self.ui_manager.window._image_label,
-                default_image=default_img,
-                asset_dir=str(asset_dir),
-            )
+            # 球没有精灵图 → `animation_target()` 返回 None，这里不设图片目标。
+            # AnimController 仍要做两件事：① 把 `text_requested` 转成气泡；
+            # ② 按形态的 `wants_shell_motion()` 决定数值动画要不要 move 外壳
+            #    （球为 False，否则拖动后会被动画拽回原坐标）。
+            # 落点要不要设由形态决定，将来接入有精灵图的形态时在这里补。
+            if window.animation_target() is not None:
+                self.anim_controller.set_target(window.animation_target())
             self.ui_manager.set_anim_controller(self.anim_controller)
-            # 启动后直接播放待机动画
-            self.anim_controller.play("idle")
+
+        # --- 全局热键服务（需 QApplication 已创建）---
+        self.hotkeys = HotkeyService()
+        self.hotkeys.install(self.ui_manager.app)
 
         # 显示欢迎信息
         if self.ui_manager.window:
@@ -278,6 +288,32 @@ class PetDemo:
 
         # --- 系统托盘（UI 就绪后创建）---
         self._start_tray()
+
+    def _notify_ui_ready(self):
+        """T3：UI 就绪后通知插件，并统一注册它们声明的全局热键。
+
+        分两步：先 on_ui_ready（插件借此预热面板），再 register_hotkeys
+        （回调里通常要引用已预热的面板，故必须在其后）。
+        """
+        plugins = self.plugin_manager.get_all_plugins() if self.plugin_manager else {}
+
+        for name, plugin in plugins.items():
+            try:
+                plugin.on_ui_ready(self)
+            except Exception as e:
+                log_manager.error(f"插件 [{name}] on_ui_ready 失败: {e}")
+
+        for name, plugin in plugins.items():
+            try:
+                for combo, callback in plugin.register_hotkeys():
+                    if self.hotkeys and self.hotkeys.register(combo, callback):
+                        log_manager.info(f"热键已注册: {combo} (插件 {name})")
+                        print(f"  [热键] {combo} 已注册")
+                    else:
+                        log_manager.warning(f"热键注册失败（可能被占用）: {combo}")
+                        print(f"  [热键] {combo} 注册失败，可从托盘菜单唤起")
+            except Exception as e:
+                log_manager.error(f"插件 [{name}] 注册热键失败: {e}")
 
     def _start_tray(self):
         """创建系统托盘图标"""
@@ -291,7 +327,7 @@ class PetDemo:
             # 开机自启静默模式：不弹窗口，直接进托盘
             if "--minimized" in sys.argv:
                 self.ui_manager.window.hide()
-                self.tray_icon.show_message("小小桌宠", "已在托盘静默启动，双击图标唤出~")
+                self.tray_icon.show_message("知时助手", "已在托盘静默启动，双击图标唤出~")
                 print("静默启动完成（托盘模式）")
             log_manager.info("系统托盘已启动")
         except Exception as e:
@@ -320,8 +356,8 @@ class PetDemo:
         self._update_thread.start()
 
     def stop(self):
-        """停止桌宠"""
-        print("\n正在停止桌宠...")
+        """停止知时助手"""
+        print("\n正在停止知时助手...")
         self._running = False
 
         # 停止感知层
@@ -332,6 +368,10 @@ class PetDemo:
         if self.time_trigger:
             self.time_trigger.stop()
 
+        # 注销全局热键
+        if self.hotkeys:
+            self.hotkeys.unregister_all()
+
         # 隐藏托盘图标（否则图标残留到鼠标划过）
         if self.tray_icon:
             try:
@@ -339,8 +379,17 @@ class PetDemo:
             except Exception:
                 pass
 
-        log_manager.info("桌宠已停止")
+        log_manager.info("知时助手已停止")
         print("再见！")
+
+        # 关闭进程级共享 Store（会话 / 预设库）。放在退出前 —— 插件只借用
+        # 它，不负责关闭，真正释放必须由进程统一做（见 engine.ai.store）。
+        try:
+            from engine.ai import close_shared_store
+
+            close_shared_store()
+        except Exception:  # noqa: BLE001 —— 收尾失败不该阻止退出
+            pass
 
         # 退出 Qt 事件循环（关闭窗口）
         try:

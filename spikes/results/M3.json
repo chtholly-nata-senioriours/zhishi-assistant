@@ -1,0 +1,175 @@
+{
+  "spike": "M3",
+  "title": "设置 UI 热切换端到端验证",
+  "hypothesis": "在程序内改配置并保存后，AI 请求真的换到新地址（无需重启）",
+  "criterion": "保存后 SessionManager 重建；切换后请求打到新服务；主线程不阻塞",
+  "verdict": "PASS",
+  "checks": [
+    {
+      "desc": "ai_assistant 插件已加载并完成 on_ui_ready",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "desc": "初始 SessionManager 指向假服务 A",
+      "ok": true,
+      "detail": "base_url=http://127.0.0.1:50290/v1"
+    },
+    {
+      "desc": "初始 model = model-A",
+      "ok": true,
+      "detail": "model=model-A"
+    },
+    {
+      "desc": "面板已预热",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "desc": "面板存在设置（齿轮）按钮",
+      "ok": true,
+      "detail": "⚙"
+    },
+    {
+      "desc": "点击齿轮发出 settings_requested 信号",
+      "ok": true,
+      "detail": "信号次数=1"
+    },
+    {
+      "desc": "点齿轮后面板自动钉住（不会被对话框挤关）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "desc": "托盘菜单含 3 个模式 + 1 个设置入口",
+      "ok": true,
+      "detail": "['AI 问答（ALT+Q）', '划词翻译（ALT+T）', '截图问答（ALT+S）', 'AI 服务设置…']"
+    },
+    {
+      "desc": "托盘菜单含「AI 服务设置…」",
+      "ok": true,
+      "detail": "['AI 问答（ALT+Q）', '划词翻译（ALT+T）', '截图问答（ALT+S）', 'AI 服务设置…']"
+    },
+    {
+      "desc": "设置对话框已打开",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "desc": "重复打开不会建第二个窗口（单例）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "desc": "对话框回填了当前配置",
+      "ok": true,
+      "detail": "http://127.0.0.1:50290/v1 / model-A"
+    },
+    {
+      "desc": "测试连接不阻塞主线程（≤20ms）",
+      "ok": true,
+      "detail": "0.8 ms"
+    },
+    {
+      "desc": "测试连接在超时内完成",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "desc": "测试连接真的打到了假服务 B",
+      "ok": true,
+      "detail": "/models 请求数 0 → 1"
+    },
+    {
+      "desc": "测试结果为成功（状态区显示连接正常）",
+      "ok": true,
+      "detail": "连接正常 · model-B · 视觉模型已就绪"
+    },
+    {
+      "desc": "真实模型列表已灌入候选（替换硬编码）",
+      "ok": true,
+      "detail": "['model-B']"
+    },
+    {
+      "desc": "配置已写入 user_config.json",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "desc": "SessionManager 已重建并指向假服务 B",
+      "ok": true,
+      "detail": "base_url=http://127.0.0.1:50291/v1"
+    },
+    {
+      "desc": "新模型已生效（model = model-B）",
+      "ok": true,
+      "detail": "model=model-B"
+    },
+    {
+      "desc": "视觉模型已生效（vision = model-B-vl）",
+      "ok": true,
+      "detail": "vision=model-B-vl"
+    },
+    {
+      "desc": "保存后对话框已关闭",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "desc": "切换后问答正常返回",
+      "ok": true,
+      "detail": "['FROM-B']"
+    },
+    {
+      "desc": "回答来自假服务 B（内容 FROM-B）",
+      "ok": true,
+      "detail": "['FROM-B']"
+    },
+    {
+      "desc": "请求真的打到了 B",
+      "ok": true,
+      "detail": "B 收到 1 → 2"
+    },
+    {
+      "desc": "请求没有再打到 A（旧地址已弃用）",
+      "ok": true,
+      "detail": "A 收到 0 → 0"
+    },
+    {
+      "desc": "请求体带的是新模型名",
+      "ok": true,
+      "detail": "model-B"
+    },
+    {
+      "desc": "可以再次打开设置（单例已释放）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "desc": "切回 A 后 base_url 回到 A",
+      "ok": true,
+      "detail": "base_url=http://127.0.0.1:50290/v1"
+    },
+    {
+      "desc": "切回后请求打到 A（可反复热切换）",
+      "ok": true,
+      "detail": "A 收到 0 → 1"
+    },
+    {
+      "desc": "全程主线程未阻塞（≤120ms）",
+      "ok": true,
+      "detail": "27.52 ms"
+    }
+  ],
+  "metrics": {
+    "假服务 A": "http://127.0.0.1:50290/v1",
+    "假服务 B": "http://127.0.0.1:50291/v1",
+    "测试连接调用耗时（主线程同步部分）": 0.8,
+    "B 收到的请求": "model=model-B stream=True",
+    "主线程最大心跳间隔": 27.52
+  },
+  "notes": [
+    "已还原 ~/.pet_demo/user_config.json"
+  ],
+  "timestamp": "2026-10-10 13:46:17"
+}

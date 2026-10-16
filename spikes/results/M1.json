@@ -1,0 +1,115 @@
+{
+  "spike": "M1",
+  "title": "端到端闭环：选中文本 → Alt+Q → 流式回答 → Esc 还原焦点",
+  "hypothesis": "P1 全部零件串起来后，M1 链路可跑通且主线程不阻塞",
+  "criterion": "全链路各环节均通过 → PASS",
+  "verdict": "PASS",
+  "checks": [
+    {
+      "desc": "ai_assistant 插件已加载（验证 T1 包加载）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "desc": "AI 面板已预热",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "desc": "会话管理器已构建",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "desc": "三组热键全部注册成功",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "desc": "已注入假 Provider",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "desc": "目标窗口持有焦点",
+      "ok": true,
+      "detail": "fg=0x23b081a 期望=0x23b081a"
+    },
+    {
+      "desc": "面板已可见",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "desc": "选中文本已填入输入框（验证 S2 采集链路）",
+      "ok": true,
+      "detail": "'HELLO_M1_PROBE'"
+    },
+    {
+      "desc": "流式回答已渲染",
+      "ok": true,
+      "detail": "'M1-FAKE-ANSWER'"
+    },
+    {
+      "desc": "[唤起] 主线程未阻塞（≤60ms）",
+      "ok": true,
+      "detail": "16.76 ms"
+    },
+    {
+      "desc": "[流式] 主线程未阻塞（≤60ms）",
+      "ok": true,
+      "detail": "17.11 ms"
+    },
+    {
+      "desc": "面板已隐藏",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "desc": "焦点已还原到目标窗口（验证 S3 链路）",
+      "ok": true,
+      "detail": "fg=0x23b081a 期望=0x23b081a"
+    }
+  ],
+  "metrics": {
+    "已加载插件": [
+      "ai_assistant",
+      "giwifi",
+      "notes",
+      "quick_launch",
+      "quit",
+      "settings",
+      "timer"
+    ],
+    "热键注册结果": [
+      [
+        "alt+q",
+        true
+      ],
+      [
+        "alt+t",
+        true
+      ],
+      [
+        "alt+s",
+        true
+      ]
+    ],
+    "目标窗口句柄": "0x23b081a",
+    "取选中文本耗时（设计内等待，已剔除）": 258.8,
+    "合成按键耗时（夹具，已剔除）": 1.9,
+    "[唤起] 最大心跳间隔": 16.76,
+    "[唤起] 剔除前原始最大间隔": 19.66,
+    "[唤起] 最大间隔出现位置": 1135.0,
+    "输入框内容": "'HELLO_M1_PROBE'",
+    "提交调用耗时（主线程同步部分）": 1.2,
+    "[流式] 最大心跳间隔": 17.11,
+    "[流式] 最大间隔出现位置": 465.9,
+    "面板渲染内容": "'M1-FAKE-ANSWER'",
+    "两阶段最大心跳间隔": 17.11
+  },
+  "notes": [
+    "本验证全程未创建桌宠窗口，功能链路完整 —— 满足公理 A1 判据"
+  ],
+  "timestamp": "2026-10-10 13:45:56"
+}

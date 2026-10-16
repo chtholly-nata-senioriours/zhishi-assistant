@@ -1,0 +1,54 @@
+{
+  "spike": "S3",
+  "title": "面板低延迟唤起 + 焦点还原",
+  "hypothesis": "预热面板可 ≤150ms 可见，且关闭后能 100% 还原原窗口焦点",
+  "criterion": "预热唤起 P95 ≤ 150.0ms 且 焦点还原成功 → PASS",
+  "verdict": "PASS",
+  "checks": [
+    {
+      "desc": "ForegroundGuard 可用（pywin32）",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "desc": "窗口 A 已获得焦点",
+      "ok": true,
+      "detail": "fg=0xd80ac8 a=0xd80ac8"
+    },
+    {
+      "desc": "面板成功抢到焦点",
+      "ok": true,
+      "detail": "fg=0xa8094c"
+    },
+    {
+      "desc": "关闭面板后焦点还原到窗口 A",
+      "ok": true,
+      "detail": "fg=0xd80ac8 期望=0xd80ac8"
+    },
+    {
+      "desc": "restore() 返回 True",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "desc": "预热唤起 P95 ≤ 150.0ms",
+      "ok": true,
+      "detail": "6.15 ms"
+    }
+  ],
+  "metrics": {
+    "冷构建耗时": 53.0,
+    "预热构建耗时": 0.8,
+    "唤起延迟 P50": 4.17,
+    "唤起延迟 P95": 6.15,
+    "唤起延迟 MAX": 9.74,
+    "采样次数": 50,
+    "快照到的前台窗口": "0xd80ac8",
+    "窗口 A 句柄": "0xd80ac8",
+    "还原后前台窗口": "0xd80ac8"
+  },
+  "notes": [
+    "冷构建若发生在热键回调里，会直接吃掉延迟预算"
+  ],
+  "timestamp": "2026-10-10 13:46:39"
+}

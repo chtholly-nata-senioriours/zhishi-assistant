@@ -6,7 +6,7 @@ from pathlib import Path
 
 def check_imports():
     """检查关键模块是否可导入"""
-    modules = ['event_bus', 'engine.state_machine', 'data.config_manager', 'tools.quick_launch']
+    modules = ['event_bus', 'engine.state_machine', 'data.config_manager', 'tools.timer_tool']
     failed = []
     for mod in modules:
         try:
@@ -29,17 +29,24 @@ def check_config():
             return [f"✗ config.default.json: 格式错误 - {e}"]
     return ["✗ config.default.json: 文件不存在"]
 
-def check_assets():
-    """检查资源文件"""
-    assets_dir = Path("presentation/assets/models/default")
-    if assets_dir.exists():
-        required = ['pet.jpg', 'idle.png', 'sleep.png', 'wave.png']
-        missing = [f for f in required if not (assets_dir / f).exists()]
-        if missing:
-            return [f"✗ 缺失精灵图资源: {missing}"]
-        print(f"✓ 精灵图资源完整")
-        return []
-    return ["✗ 默认宠物资源目录不存在"]
+def check_data_root():
+    """检查用户数据根可写 —— 配置 / 日志 / 两个库 / 缓存全落在那里。
+
+    2026-10-15：原来这里查的是「宠物精灵图资源」，随精灵图一起删了。
+    换成这条更有用的：数据根不可写时，程序每次启动都会在保存配置时炸，
+    而用户看到的现象只是「设置总是保存不了」—— 提前查出来更值。
+    （不实际创建文件：`os.access` 只问权限，不落任何东西。）
+    """
+    from data.paths import pet_home
+
+    root = pet_home()
+    if not root.exists():
+        parent_ok = root.parent.exists()
+        print(f"· 数据目录尚未创建：{root}（首次运行自动建立）")
+        return [] if parent_ok else [f"✗ 用户主目录不存在：{root.parent}"]
+    writable = os.access(root, os.W_OK)
+    print(f"{'✓' if writable else '✗'} 数据目录{'可写' if writable else '不可写'}：{root}")
+    return [] if writable else [f"✗ 数据目录不可写：{root}"]
 
 def check_main():
     """检查main.py可执行性"""
@@ -52,7 +59,7 @@ def check_main():
 def main():
     os.chdir(Path(__file__).parent)
     print("=" * 50)
-    print("桌宠项目快速检查")
+    print("知时助手项目快速检查")
     print("=" * 50)
     
     errors = []
@@ -62,8 +69,8 @@ def main():
     print("\n[2] 入口检查:")
     errors.extend(check_main())
     
-    print("\n[3] 资源检查:")
-    errors.extend(check_assets())
+    print("\n[3] 数据根检查:")
+    errors.extend(check_data_root())
     
     print("\n[4] 模块检查:")
     errors.extend(check_imports())

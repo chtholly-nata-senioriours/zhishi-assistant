@@ -1,0 +1,60 @@
+{
+  "spike": "S1",
+  "title": "全局热键与 InputMonitor 共存",
+  "hypothesis": "RegisterHotKey 与 pynput 监听可同时工作，互不干扰",
+  "criterion": "三组热键注册成功 + 合成按键触发 WM_HOTKEY + 键频统计增长 → PASS",
+  "verdict": "PASS",
+  "checks": [
+    {
+      "desc": "注册 Alt+Q",
+      "ok": true,
+      "detail": "成功"
+    },
+    {
+      "desc": "注册 Alt+T",
+      "ok": true,
+      "detail": "成功"
+    },
+    {
+      "desc": "注册 Alt+S",
+      "ok": true,
+      "detail": "成功"
+    },
+    {
+      "desc": "重复注册 Alt+Q 被正确拒绝",
+      "ok": true,
+      "detail": "ok=False err=1409（期望 1409）"
+    },
+    {
+      "desc": "注册测试组合 Ctrl+Alt+F9",
+      "ok": true,
+      "detail": "成功"
+    },
+    {
+      "desc": "合成按键触发 WM_HOTKEY",
+      "ok": true,
+      "detail": "收到 [100]"
+    },
+    {
+      "desc": "InputMonitor 监听线程已启动",
+      "ok": true,
+      "detail": "listeners=[True, True]"
+    },
+    {
+      "desc": "键频统计仍在累计（未被热键吃掉）",
+      "ok": true,
+      "detail": "0 → 10"
+    },
+    {
+      "desc": "共存状态下热键仍能触发",
+      "ok": true,
+      "detail": "收到 [100]"
+    }
+  ],
+  "metrics": {
+    "合成按键前键频计数": 0,
+    "合成 10 次按键后计数": 10
+  },
+  "notes": [],
+  "timestamp": "2026-10-10 14:23:36"
+}

@@ -28,6 +28,7 @@ from presentation.glass_widgets import (
     GlassTheme, ToggleSwitch, GlassButton, LiquidGlassButton,
     SPACING, RADIUS, STATUS_COLOR,
 )
+from presentation.theme import app_theme
 
 # 统一对话框基类（ dialogs.py 可能尚未打包为可导入路径，做降级处理）
 try:
@@ -41,29 +42,44 @@ except Exception:
     class GlassDialog(QDialog):  # type: ignore[no-redef]
         """降级基类：仅应用统一样式（无标题拖拽）"""
 
-        def __init__(self, parent=None, dark: bool = False, title: str = ""):
+        def __init__(self, parent=None, dark=None, title: str = ""):
             super().__init__(parent)
-            self._theme = apply_dialog_style(self, dark=dark)
+            # dark=None → 跟随应用主题，与面板/其他对话框一致
+            if dark is None:
+                try:
+                    from presentation.theme import app_theme
+                    self._theme = apply_dialog_style(self, theme=app_theme())
+                except Exception:
+                    self._theme = apply_dialog_style(self, dark=False)
+            else:
+                self._theme = apply_dialog_style(self, dark=dark)
+            # 与桌宠 / AI 面板同处置顶层，否则会被置顶窗口永久压住
+            self.setWindowFlags(
+                self.windowFlags() | Qt.WindowType.WindowStaysOnTopHint
+            )
             self.setWindowTitle(title)
 
         def paintEvent(self, event):
             paint_dialog_background(self, self._theme)
 
         def make_title_label(self, text: str) -> QLabel:
+            # 字号与颜色统一由 QSS 的 QLabel#dialogTitle 决定（禁止写死 px）
             lbl = QLabel(text)
+            lbl.setObjectName("dialogTitle")
             lbl.setFont(self._theme.font_bold)
-            lbl.setStyleSheet(f"font-size: 16px; color: {self._theme.color('text').name()};")
             return lbl
 
         def make_section_label(self, text: str) -> QLabel:
             lbl = QLabel(text)
+            lbl.setObjectName("sectionLabel")
             lbl.setFont(self._theme.font_bold)
-            lbl.setStyleSheet(f"color: {self._theme.color('text_sec').name()};")
             return lbl
 
         def make_status_label(self, text: str, color_key: str = "info") -> QLabel:
             color = STATUS_COLOR.get(color_key, STATUS_COLOR["info"])
             lbl = QLabel(f'<span style="color:{color};">●</span> {text}')
+            lbl.setObjectName("pluginStatus")
+            lbl.setProperty("role", color_key)
             lbl.setFont(self._theme.font_bold)
             lbl.setTextFormat(Qt.TextFormat.RichText)
             return lbl
@@ -96,8 +112,7 @@ class GiwifiDialog(GlassDialog):
 
         # 在线时长
         self._duration_label = QLabel("")
-        self._duration_label.setStyleSheet(
-            f"color: {self._theme.color('text_ter').name()};")
+        self._duration_label.setObjectName("pageHint")
         layout.addWidget(self._duration_label)
 
         # 账号 / 密码（带文字标签提示）
@@ -105,14 +120,14 @@ class GiwifiDialog(GlassDialog):
         form.setSpacing(SPACING["xs"])
 
         lbl_user = QLabel("校园网账号")
-        lbl_user.setStyleSheet(f"color: {self._theme.color('text_sec').name()};")
+        lbl_user.setObjectName("pageHint")
         form.addWidget(lbl_user)
         self._edit_user = QLineEdit()
         self._edit_user.setPlaceholderText("请输入学号 / 账号")
         form.addWidget(self._edit_user)
 
         lbl_pass = QLabel("密码")
-        lbl_pass.setStyleSheet(f"color: {self._theme.color('text_sec').name()};")
+        lbl_pass.setObjectName("pageHint")
         form.addWidget(lbl_pass)
         self._edit_pass = QLineEdit()
         self._edit_pass.setPlaceholderText("请输入密码")
@@ -152,18 +167,25 @@ class GiwifiDialog(GlassDialog):
         self._sw_auto_login.setChecked(bool(cfg.get("auto_login", True)))
 
     # ----- 状态回调（plugin 调用，保持原版命名语义）-----
+    def _set_status_role(self, role: str) -> None:
+        """切换状态语义色。颜色由 QSS 的 [role="..."] 规则提供，这里不拼颜色。"""
+        self._status_label.setProperty("role", role)
+        self._status_label.style().unpolish(self._status_label)
+        self._status_label.style().polish(self._status_label)
+
     def set_online(self, online):
         if online is None:
             self._status_label.setText("检测中…")
+            self._set_status_role("info")
             return
         if online:
             self._status_label.setText("● 在线")
-            self._status_label.setStyleSheet("color: #34C759;")
+            self._set_status_role("ok")
             dur = self._plugin and _duration_text(self._plugin)
             self._duration_label.setText(dur or "")
         else:
             self._status_label.setText("○ 离线 / 未认证")
-            self._status_label.setStyleSheet("color: #FF3B30;")
+            self._set_status_role("error")
             self._duration_label.setText("")
 
     def on_login_result(self, ok: bool, msg: str):

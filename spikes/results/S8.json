@@ -1,0 +1,142 @@
+{
+  "spike": "S8",
+  "title": "UI 设计系统统一性（VS Code / Win11 取向）",
+  "hypothesis": "设计 token 不存在 → 各窗口各写各的颜色与圆角；`appearance.theme` 从未被读取，所以「统一」无从谈起",
+  "criterion": "规格中所有可判定项全过 + 浅深两套图人工目检通过 → PASS",
+  "verdict": "PASS",
+  "checks": [
+    {
+      "desc": "QSS 源码零 hex 字面量（颜色全部来自 token）",
+      "ok": true,
+      "detail": "0 处"
+    },
+    {
+      "desc": "UI 代码无「内联样式表写死颜色」",
+      "ok": true,
+      "detail": "0 处"
+    },
+    {
+      "desc": "圆角 2px、按钮 3px（不追求大圆角）",
+      "ok": true,
+      "detail": "window=2 control=2 button=3"
+    },
+    {
+      "desc": "间距全在 4px 基准栅格上",
+      "ok": true,
+      "detail": "全部合规"
+    },
+    {
+      "desc": "数据密集区行高 28px / 控件高 28px",
+      "ok": true,
+      "detail": "ROW_HEIGHT=28 CONTROL_HEIGHT=28"
+    },
+    {
+      "desc": "滚动条 8px 窄条，hover 变宽",
+      "ok": true,
+      "detail": "8px → 12px"
+    },
+    {
+      "desc": "工具栏图标 16x16",
+      "ok": true,
+      "detail": "ICON_SIZE=16"
+    },
+    {
+      "desc": "生成的 QSS 无未替换占位符",
+      "ok": true,
+      "detail": "无"
+    },
+    {
+      "desc": "浅 / 深两份 QSS 不同，且各自用了规格里的窗口底色",
+      "ok": true,
+      "detail": "浅 #F3F3F3 / 深 #252526"
+    },
+    {
+      "desc": "无裸 QWidget 选择器（窗口级用 .QWidget）",
+      "ok": true,
+      "detail": "0 处"
+    },
+    {
+      "desc": "字号一律 pt，无 px 写死",
+      "ok": true,
+      "detail": "全部 pt"
+    },
+    {
+      "desc": "工具栏按钮四态齐全（hover/pressed/checked/disabled）",
+      "ok": true,
+      "detail": "四态齐"
+    },
+    {
+      "desc": "日志区使用等宽字体",
+      "ok": true,
+      "detail": "QPlainTextEdit#logView 指定了 font-family"
+    },
+    {
+      "desc": "图标库规模足够（统一来源：Lucide 风格内联 SVG）",
+      "ok": true,
+      "detail": "48 个图标"
+    },
+    {
+      "desc": "全部图标可生成 SVG",
+      "ok": true,
+      "detail": "全部可生成"
+    },
+    {
+      "desc": "图标跟随主题换色（深浅各一套）",
+      "ok": true,
+      "detail": "同一图标在两套主题下 cacheKey 不同"
+    },
+    {
+      "desc": "未知图标名返回空图标而非抛异常",
+      "ok": true,
+      "detail": "isNull() == True"
+    },
+    {
+      "desc": "主窗口 = 工具栏 + 左导航 + QStackedWidget + 状态栏",
+      "ok": true,
+      "detail": "四件套齐备"
+    },
+    {
+      "desc": "工具栏按钮 iconOnly + tooltip",
+      "ok": true,
+      "detail": "6 个按钮"
+    },
+    {
+      "desc": "左导航宽度在 200-240px 规格内",
+      "ok": true,
+      "detail": "NAV_WIDTH=(200, 240)"
+    },
+    {
+      "desc": "页面数与导航项数一致",
+      "ok": true,
+      "detail": "9 页 / 9 项"
+    },
+    {
+      "desc": "AI 面板与对话框都以 theme().qss() 为基准（不各写各的私有样式）",
+      "ok": true,
+      "detail": "面板 == qss；对话框 == qss + 2 条透明窗口覆盖（自绘圆角需要）"
+    },
+    {
+      "desc": "面板 / 对话框 / 桌宠同处置顶层（z 序才由点击决定）",
+      "ok": true,
+      "detail": "均带 WindowStaysOnTopHint"
+    },
+    {
+      "desc": "点击面板 → 置顶",
+      "ok": true,
+      "detail": "raise_to_front 被调用一次"
+    },
+    {
+      "desc": "点击对话框 → 置顶",
+      "ok": true,
+      "detail": "raise_to_front 被调用一次"
+    }
+  ],
+  "metrics": {
+    "渲染图数量": 20
+  },
+  "notes": [
+    "预览图已落盘：C:\\Users\\LL\\Desktop\\处理沙盒\\petgame_demo\\spikes\\results\\ui_design",
+    "配色层次、留白、图标行一致性、日志着色观感 —— 请人工看图确认。"
+  ],
+  "timestamp": "2026-10-11 21:32:02"
+}

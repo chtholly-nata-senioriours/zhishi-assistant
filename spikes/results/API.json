@@ -1,0 +1,90 @@
+{
+  "spike": "API",
+  "title": "真实模型服务连通性自检",
+  "hypothesis": "填好 base_url / model / api_key 后，问答 / 翻译 / 截图三条链路都能拿到真实回答",
+  "criterion": "文本链路有流式增量；视觉模型能识别合成测试图",
+  "verdict": "PASS",
+  "checks": [
+    {
+      "desc": "已配置 api_key",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "desc": "GET /models 连通（地址与鉴权正确）",
+      "ok": true,
+      "detail": "共 98 个模型"
+    },
+    {
+      "desc": "配置的 model 在可用列表中（inclusionAI/Ling-flash-2.0）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "desc": "视觉模型在可用列表中（Qwen/Qwen3-VL-32B-Instruct）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "desc": "文本链路：拿到非空回答",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "desc": "文本链路：是真流式（块数 > 1）",
+      "ok": true,
+      "detail": "块数=18（=1 说明网关忽略了 stream 参数）"
+    },
+    {
+      "desc": "翻译链路：拿到非空译文",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "desc": "翻译链路：译文非原文照抄",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "desc": "视觉链路：拿到非空回答",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "desc": "视觉链路：识别出图中内容（42 / 红色圆）",
+      "ok": true,
+      "detail": "命中关键词 42 / 红"
+    }
+  ],
+  "metrics": {
+    "base_url": "https://api.siliconflow.cn/v1",
+    "model": "inclusionAI/Ling-flash-2.0",
+    "vision_model": "Qwen/Qwen3-VL-32B-Instruct",
+    "api_key": "sk-sgn...fkqi (len=51)",
+    "request_timeout": 60,
+    "可用模型数": 98,
+    "文本·首字节 (TTFB)": 491.3,
+    "文本·总耗时": 830.3,
+    "文本·流式块数": 18,
+    "文本·回答字数": 35,
+    "翻译·总耗时": 672.8,
+    "翻译·译文": "敏捷的棕色狐狸跳过懒狗。",
+    "测试图大小 (base64)": 6995,
+    "视觉·总耗时": 1129.4,
+    "视觉·回答字数": 31
+  },
+  "notes": [
+    "可用模型示例: zai-org/GLM-5.3-Flash",
+    "可用模型示例: tencent/Hy4-preview",
+    "可用模型示例: zai-org/GLM-5.3",
+    "可用模型示例: deepseek-ai/DeepSeek-V4-Flash",
+    "可用模型示例: meituan-longcat/LongCat-2.0",
+    "可用模型示例: zai-org/GLM-5.2",
+    "可用模型示例: moonshotai/Kimi-K2.7-Code",
+    "可用模型示例: deepseek-ai/DeepSeek-V4-Pro",
+    "文本测试输入: 用一句话解释什么是递归。",
+    "回答预览: 递归是函数直接或间接调用自身来分解并解决规模更小的同类问题的编程方法。",
+    "视觉回答: 形状：圆形   颜色：红色（圆）、黑色（数字）   数字：42"
+  ],
+  "timestamp": "2026-10-11 22:33:46"
+}

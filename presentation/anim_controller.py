@@ -105,6 +105,11 @@ class AnimController(QObject):
         # 当前数值动画定时器
         self._numeric_timer = None
 
+        # 位移类数值动画（摇一摇 / 弹跳）开始时的窗口位置。
+        # 动画被打断（用户按住了窗口）时必须靠它把窗口放回原处 ——
+        # 否则会永久停在「摇到一半」的偏移位置上。
+        self._numeric_origin = None
+
         # 当前超时定时器（用于 loop_count=0 的 GIF/spritesheet/image 动画自动结束）
         self._timeout_timer = None
 
@@ -556,6 +561,7 @@ class AnimController(QObject):
         widget = self._target_widget
 
         original_pos = widget.pos()
+        self._numeric_origin = original_pos
         total = repeat * 2
         step = 0
 
@@ -565,6 +571,7 @@ class AnimController(QObject):
             if step > total:
                 timer.stop()
                 widget.move(original_pos)
+                self._numeric_origin = None
                 return
             # 左右摇摆
             angle = rotation_range[0] if step % 2 == 1 else rotation_range[1]
@@ -604,6 +611,7 @@ class AnimController(QObject):
         widget = self._target_widget
 
         original_pos = widget.pos()
+        self._numeric_origin = original_pos
         total = repeat * 2
         step = 0
 
@@ -613,6 +621,7 @@ class AnimController(QObject):
             if step > total:
                 timer.stop()
                 widget.move(original_pos)
+                self._numeric_origin = None
                 return
             # 上下弹跳
             offset_y = -bounce_offset if step % 2 == 1 else bounce_offset
@@ -659,6 +668,11 @@ class AnimController(QObject):
         if self._numeric_timer:
             self._numeric_timer.stop()
             self._numeric_timer = None
+        # 位移类动画被打断 → 把窗口放回开始时的位置。
+        # 不做的话窗口会永久停在偏移位置上（摇到一半的样子）。
+        if self._numeric_origin is not None and self._target_widget:
+            self._target_widget.move(self._numeric_origin)
+        self._numeric_origin = None
         if self._original_size and self._target_widget:
             self._target_widget.setFixedSize(self._original_size)
             self._original_size = None

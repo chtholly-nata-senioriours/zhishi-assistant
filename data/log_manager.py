@@ -24,6 +24,8 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 from datetime import datetime
 
+from data.paths import pet_path
+
 
 class LogManager:
     """日志管理器 - 统一管理三种日志"""
@@ -41,7 +43,7 @@ class LogManager:
             return
         self._initialized = True
 
-        self._log_dir = log_dir or (Path.home() / ".pet_demo" / "logs")
+        self._log_dir = log_dir or pet_path("logs")
         self._log_dir.mkdir(parents=True, exist_ok=True)
 
         # 用户是否同意记录行为数据

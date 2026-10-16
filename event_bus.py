@@ -26,6 +26,7 @@ Usage:
 
 import time
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from typing import Callable, Dict, List, Any
 from threading import Lock
 
@@ -63,6 +64,14 @@ ALLOWED_EVENTS = {
     # 交互事件
     "USER_INPUT",
     "AI_REPLY",
+
+    # AI 事件（v2 功能优先改造新增）
+    "AI_REQUEST",        # 用户发起一次 AI 请求
+    "AI_CHUNK",          # 流式增量
+    "AI_DONE",           # 完成
+    "AI_ERROR",          # 出错
+    "AI_CANCEL",         # 取消
+    "HOTKEY_TRIGGERED",  # 全局热键触发
     "PET_CLICKED",
     "PET_DRAGGED",
     "PET_MENU_OPEN",
@@ -170,6 +179,47 @@ class EventBus:
 
         return event
 
+    def publish_async(self, event_type: str, data: Any = None) -> Dict:
+        """异步投递事件：订阅者在线程池中执行，绝不阻塞发布者。
+
+        T2 改造新增。用于 AI 请求等耗时操作 —— publish() 是同步 for 循环，
+        若发布者本身是 pynput 监听线程或状态机线程，在回调里同步发 HTTP
+        会直接冻结感知层。高频感知事件（MOUSE_MOVE 等）仍应用同步 publish()。
+
+        Args:
+            event_type: 事件类型
+            data: 事件附加数据
+
+        Returns:
+            构造的事件字典（回调尚未执行完）
+        """
+        if event_type not in ALLOWED_EVENTS:
+            logger.warning(f"发布未注册的事件类型: {event_type}")
+            self._stats["dropped_count"] += 1
+
+        event = {
+            "type": event_type,
+            "data": data or {},
+            "timestamp": time.time(),
+        }
+
+        with self._lock:
+            callbacks = list(self._subscribers.get(event_type, []))
+            self._stats["published_count"] += 1
+
+        for callback in callbacks:
+            _executor.submit(self._safe_call, callback, event, event_type)
+
+        return event
+
+    @staticmethod
+    def _safe_call(callback: Callable, event: Dict, event_type: str) -> None:
+        """线程池内执行回调，异常只记日志不外抛。"""
+        try:
+            callback(event)
+        except Exception as e:
+            logger.error(f"事件处理异常 [{event_type}]: {e}", exc_info=True)
+
     def get_stats(self) -> Dict:
         """获取事件统计信息"""
         return dict(self._stats)
@@ -192,6 +242,10 @@ class EventBus:
         """列出所有有订阅者的事件类型"""
         with self._lock:
             return [et for et, cbs in self._subscribers.items() if cbs]
+
+
+# 异步投递线程池（publish_async 使用）
+_executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="ebus")
 
 
 # 全局事件总线实例

@@ -1,121 +1,112 @@
-#  小小桌宠
+# 知时助手
 
-> 一个可爱的桌面宠物，能感知你的工作状态，在你专注时安静陪伴，在你休息时活泼互动。  
+> 一个懂你工作节律的 Windows 桌面助手：常驻一枚悬浮球，替你记录时间去向、
+> 在合适的时候提醒你休息，也能随时问答、改写、翻译。
 > 基于 Python + PySide6 (Qt6) 构建，Windows 桌面端。
+
+**2026-10-15 起由「小小桌宠」更名为「知时助手」（v1.7.0）**：宠物模型、
+便签、快捷启动三个与主线无关的子系统已整体移除，产品聚焦在
+「时间感知 + AI 助手 + 隐私可控」三件事上。
+
+**v1.9.0 重写了时间分类**：判定从裸子串匹配改为「进程名精确匹配 + 标题词边界匹配」，
+新增「学习 / 沟通」两类，并允许你在「应用分类」页**手动纠正**每个应用的归类
+（详见「[应用怎么分类](#应用怎么分类)」）。
 
 ---
 
-##  功能特性
+## 功能特性
 
 | 特性 | 说明 |
 |------|------|
-| **半透明悬浮窗口** | 置顶显示，无边框拖拽，不影响工作 |
-| **智能感知** | 监听键盘敲击频率、鼠标活动、检测活跃窗口标题 |
-| **状态机驱动** | 空闲 → 放松 → 休眠 → 专注 → 互动，带防抖策略 |
-| **精灵图动画** | PNG spritesheet 动画：待机 / 打哈欠 / 睡觉 / 挥手 / 点赞 / 思考 / 开心 / 困惑 |
-| **番茄钟** | 25分钟专注 + 5分钟休息，支持暂停/继续，番茄数统计 |
-| **便签** | 快速记录待办事项，支持颜色/优先级/标签/搜索/持久化 |
-| **快捷启动** | 一键启动常用软件，使用频率排序，支持自定义收藏 |
-| **插件系统** | 内置 5 个插件（notes/quick_launch/timer/settings/quit），支持扩展 |
-| **右键菜单** | 集成所有插件入口，一键访问 |
-| **音效反馈** | 状态切换 / 互动时播放轻音效 |
+| **悬浮球** | 无边框置顶，可拖拽、贴边吸附；球内进度环表达「今日深度工作进度」 |
+| **状态感知** | 键盘敲击频率 / 鼠标活动 / 前台窗口 → 空闲 / 放松 / 休眠 / 专注 / 互动 |
+| **番茄钟** | 25 分钟专注 + 5 分钟休息，可暂停；悬浮球与托盘环实时显示本轮进度 |
+| **活动洞察** | 今日时间构成、7/30 天趋势、AI 生成的作息建议（插件默认关闭） |
+| **应用分类** | 五类体系（工作 / 学习 / 沟通 / 娱乐 / 其他）逐条说明判定依据；每个应用都能**手动归类**，且保留「系统判定 vs 你的归类」对照 |
+| **人机协同证据链** | 采纳 / 忽略每条建议时自动留痕：推荐依据 + 当时的数据现场 + 影响范围，可逐条核对与导出 |
+| **AI 助手** | 全局热键唤起面板：问答 / 改写 / 翻译 / 截图提问；流式输出、会话续接 |
+| **系统密钥库** | API Key 存进操作系统凭据库（或 Windows DPAPI），配置里只留引用、不留明文 |
+| **隐私与数据** | 一页说清「收集什么、不收集什么、存在哪」，可逐类查看 / 导出 / 清空 |
+| **插件系统** | 内置 5 个插件（activity_advisor / ai_assistant / timer / settings / quit） |
+| **控制中心** | 左导航 3 组 14 页：今日 / 趋势 / 应用分类 / 协同记录 / 外观 / 行为 / 番茄钟 / AI 服务 / 会话历史 / 预设 / 插件 / 隐私与数据 / 日志 / 关于 |
 
 ---
 
-##  项目结构
+## 项目结构
 
 ```
 petgame_demo/
-├── main.py                        # 程序入口
-├── event_bus.py                   # 事件总线（发布-订阅模式）
-├── config.default.json             # 默认配置文件
-├── requirements.txt               # Python 依赖
+├── main.py                        # 程序入口（接线：插件 → UI → 托盘）
+├── event_bus.py                   # 事件总线（发布-订阅）
+├── config.default.json             # 默认配置（版本号唯一来源）
 ├── PetDemo.spec                   # PyInstaller 打包配置
-├── installer.iss                  # Inno Setup 安装脚本
-├── setup.bat                      # 一键安装脚本
-├── unins.bat                      # 卸载脚本
-├── 图标.ico                        # 程序图标
-├── .gitignore
-├── README.md
+├── installer.iss / setup.bat      # Inno Setup 安装脚本 / 一键安装
+├── check_project.py                # 快速自检（配置 / 入口 / 数据根 / 模块）
+├── dev_bootstrap.py               # 开发运行入口（装配 Lib/ 依赖与 pywin32）
 │
-├── sensor/                        # 🔍 感知层
+├── sensor/                        # 感知层
 │   ├── input_monitor.py           #   键盘/鼠标监听（pynput）
-│   ├── window_monitor.py          #   活跃窗口检测（win32gui）
-│   └── time_trigger.py            #   定时触发（整点/30分/5分/自定义）
+│   ├── window_monitor.py          #   前台窗口检测（win32gui，分类转交 engine/activity/category）
+│   └── time_trigger.py            #   定时触发
 │
-├── engine/                        # 🧠 决策引擎
+├── engine/                        # 决策引擎
 │   ├── state_machine.py           #   有限状态机（FSM）
-│   └── rule_engine.py             #   规则引擎（概率+冷却）
+│   ├── rule_engine.py             #   规则引擎（概率 + 冷却）
+│   ├── activity/                  #   活动洞察：分类 / 采集 / 聚合 / 建议 / 提醒 / 日程
+│   │   └── category.py            #     五类判定 + explain() 给依据（纯函数，可单测）
+│   └── ai/                        #   AI 核心：provider / 会话 / 预设 / 探测 / 流式
 │
-├── presentation/                  # 🎨 表现层
-│   ├── ui_renderer.py             #   UI 窗口（半透明/拖拽/菜单）
-│   ├── anim_controller.py         #   动画控制器（GIF/精灵图/数值动画）
-│   ├── pet_model.py               #   宠物模型管理器（多外观）
-│   ├── dialogs.py                 #   对话框（番茄钟/便签/快捷启动/设置）
-│   └── assets/                    #   资源文件
-│       ├── pet.jpg                #     默认宠物图
-│       └── models/
-│           └── default/           #     默认模型（精灵图 PNG）
-│               ├── pet.jpg
-│               ├── idle.png       #       待机（4帧）
-│               ├── yawn.png       #       打哈欠（2帧）
-│               ├── sleep.png      #       睡觉（4帧）
-│               ├── wave.png       #       挥手（4帧）
-│               ├── happy.png      #       开心（4帧）
-│               ├── think.png      #       思考（4帧）
-│               ├── thumbs_up.png  #       点赞（4帧）
-│               └── confused.png   #       困惑（1帧）
+├── presentation/                  # 表现层
+│   ├── ui_renderer.py             #   外壳窗口 ShellWindow（形态无关）+ UIManager
+│   ├── forms.py                   #   外观协议 Form 与悬浮球 OrbForm 实现
+│   ├── bubble.py                  #   独立顶层气泡窗
+│   ├── anim_controller.py         #   动画控制器（数值动画）
+│   ├── tray_icon.py               #   托盘图标与进度环
+│   ├── control_center.py          #   控制中心主窗口（3 组 14 页）
+│   ├── ai_panel.py                #   AI 悬浮面板
+│   ├── ai_settings_dialog.py      #   AI 服务设置对话框
+│   ├── dialogs.py                 #   预设编辑等对话框
+│   └── design/                    #   设计系统：tokens / theme / qss / icons / widgets
+│       ├── charts.py              #     图表组件（时间轴 / 排行 / 排行条）
+│       ├── advice_card.py         #     建议卡与总结段
+│       ├── focus_card.py          #     专注倒计时卡
+│       └── ring.py                #     托盘环与球环共用的状态判定
 │
-├── tools/                         # 🛠️ 工具层
-│   ├── timer_tool.py              #   番茄钟计时器
-│   ├── note_tool.py               #   便签管理器
-│   └── quick_launch.py            #   快捷启动器
+├── data/                          # 数据层
+│   ├── paths.py                   #   用户数据根的唯一来源（PET_DEMO_HOME 可覆盖）
+│   ├── config_manager.py          #   配置管理（默认 + 用户配置合并 / 迁移）
+│   ├── log_manager.py             #   日志管理（运行 / 行为 / 迁移）
+│   └── privacy.py                 #   本机数据清单 / 导出 / 清空（隐私页后端）
 │
-├── data/                          # 💾 数据层
-│   ├── config_manager.py          #   配置管理（默认+用户配置合并）
-│   └── log_manager.py             #   日志管理（运行/行为/迁移）
+├── tools/                         # 工具层
+│   └── timer_tool.py              #   番茄钟计时器（带轮次号，防「停→再开」两倍速）
 │
-├── extensions/                    # 🔌 插件系统
+├── extensions/                    # 插件系统
 │   ├── base_plugin.py             #   插件基类 + Manifest + MenuAction
-│   ├── plugin_manager.py          #   插件管理器（自动发现/加载）
-│   ├── system/                    #   系统内置插件
-│   │   ├── notes/                 #     便签插件
-│   │   ├── quick_launch/          #     快捷启动插件
-│   │   ├── timer/                 #     番茄钟插件
-│   │   ├── settings/              #     设置插件
-│   │   └── quit/                  #     退出插件
-│   ├── user/                      #   用户安装（自动加载）
-│   └── dev/                       #   开发测试（手动放置）
+│   ├── plugin_manager.py          #   插件管理器（自动发现 / 加载 / 卸载）
+│   ├── system/                    #   系统内置插件（5 个）
+│   └── user/                      #   用户安装（自动加载）
 │
-└── tests/                         # 🧪 单元测试
-    ├── test_event_bus.py
-    ├── test_config_manager.py
-    ├── test_state_machine.py
-    ├── test_rule_engine.py
-    ├── test_note_tool.py
-    ├── test_timer_tool.py
-    └── test_quick_launch.py
+└── tests/                         # 单元测试（27 个文件，855 条用例，另有 1 条按环境跳过）
 ```
 
 ---
 
-##  快速开始
+## 快速开始
 
-### 方法一  新手使用者
+### 方式一：安装包
+
 ```
-    双击安装包（无需任何操作）
-    点这里安装\小小桌宠_Setup.exe
-    → 下一步 → 下一步 → 完成
-    → 桌面出现「小小桌宠」快捷方式，双击即运行
+Output\知时助手_Setup.exe
+    → 下一步 → 完成
+    → 桌面出现「知时助手」快捷方式，双击即运行
 ```
 
 ### 方式二：直接运行打包版
 
 ```
-dist\小小桌宠Demo\小小桌宠Demo.exe
+dist\知时助手\知时助手.exe
 ```
-
-或运行 `setup.bat` 安装到 Program Files，自动创建桌面快捷方式。
 
 ### 方式三：源码运行
 
@@ -123,163 +114,198 @@ dist\小小桌宠Demo\小小桌宠Demo.exe
 # 1. 安装依赖
 pip install -r requirements.txt
 
-# 2. 运行
-python main.py
+# 2. 运行（dev_bootstrap 会装配 Lib/ 下的依赖并注册 pywin32 DLL 目录）
+python dev_bootstrap.py main.py
 ```
 
 ---
 
-## 🎮 操作说明
+## 操作说明
 
 | 操作 | 效果 |
 |------|------|
-| **左键拖拽** | 移动桌宠位置 |
-| **右键点击** | 打开菜单（番茄钟 / 便签 / 快捷启动 / 设置 / 退出） |
-| **键盘高频输入** | 桌宠进入专注状态 → 点赞动画 |
-| **无操作 30 秒** | 进入放松状态 → 打哈欠动画 |
-| **无操作 5 分钟** | 进入休眠状态 → 睡觉动画 |
-| **点击桌宠** | 进入互动状态 → 挥手动画 + 问候音效 |
+| **拖拽悬浮球** | 移动位置（松手靠近屏幕左右边缘时自动吸附，藏起 1/3） |
+| **单击** | 戳一下：球弹一下并发 `PET_CLICKED`（状态机进互动 5 秒） |
+| **双击** | 打开控制中心 |
+| **右键** | 插件菜单（番茄钟 / 设置 / 退出） |
+| **Alt+Q / Alt+T / Alt+S** | 唤起 AI：问答 / 翻译 / 截图提问 |
+| **托盘图标** | 进度环 = 今日深度工作进度；菜单可开始专注、查看今日 |
 
 ---
 
-##  配置说明
+## 隐私与数据
 
-配置文件保存在 `~/.pet_demo/user_config.json`，首次启动时自动从默认配置生成。
+所有数据只保存在**本机** `~/.pet_demo/`（可用环境变量 `PET_DEMO_HOME` 整体改根）：
 
-```json
+| 数据 | 文件 | 内容 |
+|------|------|------|
+| 设置与偏好 | `user_config.json` | AI 服务地址、模型、界面与采集开关（**密钥默认不在这里**） |
+| 系统密钥库 | 操作系统凭据库，或 `secure_keys.bin` | API Key（按当前用户加密，配置里只留一个引用） |
+| AI 会话历史 | `ai.db` | 提问、回答与预设 |
+| 活动记录 | `activity.db` | **只有**前台应用名、类别、停留时长、敲击次数；另有「决策留痕」表与「应用分类」偏好表 |
+| 运行日志 | `logs/` | 排障用 |
+| 界面缓存 | `cache/` | 图标缓存，删了自动重建 |
+
+- **不采集**：窗口标题、按键内容、剪贴板、截图（`activity.db` 里根本没有 title 列，有测试钉住）。
+  决策留痕的上下文也**只放聚合数字**（条数 / 总时长 / 起止 / 是否过期），
+  用白名单过滤 —— 认不出的键直接丢掉。
+- **会出网**：只有你主动发起的 AI 提问，发送到你在「AI 服务」页自己填写的地址。
+- **可自决**：控制中心「隐私与数据」页可逐类**查看大小 / 导出 zip / 清空**。
+  导出走 sqlite 的 backup API，不会漏掉还留在 WAL 里的最近几轮对话。
+
+### 密钥怎么存
+
+「AI 服务」页的**保存位置**有两档，密钥本身**不进配置文件**（默认档）：
+
+1. **系统密钥库（推荐）** —— 装了 `keyring` 就用操作系统的凭据管理器
+   （Windows 凭据管理器 / macOS 钥匙串 / Linux Secret Service）；
+   没装则走 **Windows DPAPI 加密文件**（`secure_keys.bin`）。
+   两者都由操作系统按**当前用户**隔离，别的用户、别的进程读不到。
+   配置里只写 `"api_key_ref": "keyring:<条目名>"`。
+2. **配置文件（明文）** —— 给老用户与无密钥库机器的退路，界面上写明了代价
+   （会随备份与「导出全部数据」被带走）。
+
+读取一律走 `resolve_api_key()`（全项目唯一读密钥的地方）；日志、状态栏里
+只出现**脱敏**后的值（头 3 尾 4、总长度固定）。
+
+---
+
+## 应用怎么分类
+
+分类**按「行为类型」划分，不按场景** —— 场景（上班 / 在家）判不出来，行为判得出来。
+所以钉钉、飞书算「沟通」而不是「工作」：它们本身是沟通工具，至于聊的是不是公事，
+代码无从得知，硬猜一个「工作」才是撒谎。判不出来的一律进「其他」，**不猜**。
+
+| 分类 | 判定依据 |
+|------|----------|
+| **工作** | 生产力工具（编辑器 / IDE / Office / 设计 / 终端 / 数据库 / 远程），或标题命中工作站点与流程词 |
+| **学习** | 学习工具（词典 / 文献 / 记忆卡 / 阅读器），或标题命中课程、题库、论文、开发文档站 |
+| **沟通** | 即时通讯、邮件与会议客户端（微信 / 钉钉 / 飞书 / Slack / Teams / Zoom / Outlook…） |
+| **娱乐** | 游戏平台与游戏本体、影音播放器与音乐客户端，或标题命中视频、短视频、直播、社交娱乐站点 |
+| **其他** | 以上都不命中，**或同时命中两个方向 —— 判不出就不猜**。浏览器停在空白页时也在这里 |
+
+判定分三层，越靠前越可信：
+
+1. **进程名**（精确匹配）：`code.exe` → 工作，`steam.exe` → 娱乐。
+   **浏览器除外** —— `chrome.exe` 只是容器，不代表在做什么。
+2. **标题**（英文按**词边界**匹配、中文按子串）：`vs code` 命中「工作」，
+   `decode` **不会**（旧版用裸子串匹配，把含 `digital` / `knowledge` / `password`
+   的网页全判成了工作，v1.9.0 修掉）。
+3. 都没有信号 → **其他**。
+
+### 手动纠正
+
+判定不可能全对，所以**每个应用都能被你改**：控制中心 →「应用分类」页，
+表格里逐应用显示「停留时长 / 系统判定 / 你的归类」，下拉即可改，
+改过的行用强调色标出。你的归类与系统判定**分开存**（原始记录不被篡改），
+所以随时可以「恢复自动判定」，而「系统当初判成什么」永远查得到。
+
+> **深度工作** = 工作 + 学习。看两小时网课在悬浮球进度环上不该是 0。
+
+---
+
+## 配置说明
+
+配置文件保存在 `~/.pet_demo/user_config.json`，首次启动时自动从默认配置生成；
+程序只在「磁盘与内存不一致」时才写盘。完整节结构见 `config.default.json`：
+
+```jsonc
 {
-  "version": "1.0.0",
-  "window": {
-    "position": [100, 200],       // 窗口位置（像素）
-    "size": [200, 200],           // 窗口大小
-    "opacity": 0.9,               // 透明度 0~1
-    "always_on_top": true,        // 是否置顶
-    "show_on_startup": true       // 启动时自动显示
-  },
-  "behavior": {
-    "idle_threshold": 30,         // 进入放松的闲置秒数
-    "sleep_threshold": 300,       // 进入休眠的闲置秒数
-    "focus_threshold": 60,        // 进入专注的按键频率（次/30秒）
-    "focus_debounce": 15,         // 退出专注的防抖秒数
-    "state_switch_cooldown": 1,   // 状态切换冷却秒数
-    "sound_enabled": true,
-    "volume": 0.5
-  },
-  "tomato": {
-    "work_duration": 25,          // 工作时长（分钟）
-    "break_duration": 5,          // 休息时长（分钟）
-    "long_break_duration": 15,    // 长休息时长
-    "long_break_interval": 4,     // 几个番茄后长休息
-    "auto_start_break": false
-  },
-  "quick_launch": {
-    "items": [                    // 快捷启动项列表
-      {"name": "Chrome", "command": "start chrome", "category": "浏览器"},
-      ...
-    ]
-  },
-  "appearance": {
-    "pet_name": "小宠",
-    "pet_model": "default",
-    "animation_speed": 1.0
-  },
-  "notification": {
-    "enabled": true,
-    "rest_reminder_interval": 60
-  }
+  "version": "1.9.0",
+  "window":    { "center": [100, 200], "opacity": 0.8, "always_on_top": true },
+  "appearance": { "orb_size": 52, "theme": "default" },
+  "behavior":  { "idle_threshold": 30, "sleep_threshold": 300, "focus_threshold": 60 },
+  "tomato":    { "work_duration": 25, "break_duration": 5 },
+  "ai":        { "provider": "openai_compat", "base_url": "...",
+                 "api_key": "", "api_key_ref": "keyring:api.example.com" },
+  "activity":  { "enabled": false, "retention_days": 30, "focus_goal_minutes": 240 }
 }
 ```
 
+> `activity.enabled` 默认 **false**：不开启就不订阅事件、不落任何数据。
+
 ---
 
-##  打包发布
+## 打包发布
 
 ```bash
-# 安装 PyInstaller（已安装可跳过）
-pip install pyinstaller
+# 打包（输出到 dist\知时助手\，约 3–4 分钟）
+PYTHONPATH="Lib;Lib/site-packages;Lib/packtools" \
+  python dev_bootstrap.py -m PyInstaller PetDemo.spec --noconfirm --clean
 
-# 打包（输出到 dist\小小桌宠Demo\）
-python -m PyInstaller PetDemo.spec
+# 发版核查三件套（不可互相替代）
+PYTHONPATH="Lib;Lib/site-packages;Lib/packtools" \
+  python dev_bootstrap.py spikes/pyz_check.py      # ① PYZ 里该在的符号 / 不该在的旧符号
+python dev_bootstrap.py spikes/leak_check.py       # ② zip 逐条目查密钥泄漏
+python dev_bootstrap.py spikes/exe_window_check.py # ③ exe 真的跑起来了、窗口真的在
 
-# 可选：用 Inno Setup 编译安装包
-# 右键 installer.iss → Compile → Output\小小桌宠_Setup.exe
+# 冒烟（存活 16s + 版本行 + 完整启动序列 + 零 ERROR）
+python dev_bootstrap.py spikes/smoke_exe.py
+
+# 刷新发布目录与版本号
+python dev_bootstrap.py spikes/_refresh_release.py
 ```
 
----
-
-##  自定义宠物模型
-
-在 `presentation/assets/models/` 下创建新目录（如 `my_pet/`），放入以下文件：
-
-| 文件 | 格式 | 说明 |
-|------|------|------|
-| `pet.jpg` / `pet.png` | 单张图片 | 默认显示图（必需） |
-| `idle.png` | 精灵图 | 待机动画 |
-| `yawn.png` | 精灵图 | 打哈欠 |
-| `sleep.png` | 精灵图 | 睡觉 |
-| `wave.png` | 精灵图 | 挥手 |
-| `happy.png` | 精灵图 | 开心 |
-| `think.png` | 精灵图 | 思考 |
-| `thumbs_up.png` | 精灵图 | 点赞 |
-| `confused.png` | 单张/GIF | 困惑 |
-
-**精灵图规范**：水平排列多帧 PNG，宽度 ≥ 高度 × 1.5，程序自动检测帧数（优先匹配 4/2/3/5/6/8 帧）。也可以在 `appearance.pet_model` 配置中切换模型。
+安装包用 Inno Setup 编译：右键 `installer.iss` → Compile → `Output\知时助手_Setup.exe`。
 
 ---
 
-##  测试
+## 测试
 
 ```bash
-# 运行单个测试
-python tests/test_event_bus.py
-python tests/test_state_machine.py
-python tests/test_rule_engine.py
-python tests/test_config_manager.py
-python tests/test_note_tool.py
-python tests/test_timer_tool.py
-python tests/test_quick_launch.py
+# 全量（不带 tests 路径会把第三方测试收进来 → access violation 崩掉）
+rm -rf .pytest_tmp && python dev_bootstrap.py -m pytest tests -q --basetemp=.pytest_tmp
+
+# 单文件
+python dev_bootstrap.py -m pytest tests/test_privacy.py -q
 ```
+
+测试全部跑在**临时数据根**下（`tests/conftest.py` 在 import 前设 `PET_DEMO_HOME`），
+不会碰你真实的 `~/.pet_demo/`。
 
 ---
 
-##  架构概览
+## 架构概览
 
 ```
-用户交互 → 感知层（input/window/time）
-              ↓ 事件总线（EventBus）
+用户交互 → 感知层（input / window / time）
+              ↓ EventBus
          决策引擎（状态机 + 规则引擎）
-              ↓ 事件总线（EventBus）
-         表现层（UI + 动画 + 音效）
+              ↓ EventBus
+         表现层（外壳 + 悬浮球 + 托盘 + 控制中心）
               ↓
-         插件层（番茄钟 / 便签 / 快捷启动 / 设置）
+         插件层（activity_advisor / ai_assistant / timer / settings / quit）
 ```
 
-- **感知层**: 收集键盘/鼠标/窗口/时间信号 → 发布事件
-- **决策引擎**: 状态机管理空闲/放松/休眠/专注/互动切换；规则引擎按概率+冷却触发动效
-- **表现层**: 跨线程安全的 Qt 动画播放（Signal + QueuedConnection）
-- **插件系统**: 基于 SKILL.md 自动发现，plugin.py 动态加载，右键菜单集成
+- **感知层**：收集键盘 / 鼠标 / 窗口 / 时间信号 → 发布事件。
+- **决策引擎**：状态机管五种状态切换；规则引擎按概率 + 冷却触发表情与音效。
+- **表现层**：`ShellWindow`（外壳，管拖拽 / 位置 / 菜单 / 气泡）+ `Form`（外观）分层，
+  换形态不动窗口行为；托盘环与球环共用同一套状态判定。
+- **插件系统**：基于 `SKILL.md` 自动发现，`plugin.py` 动态加载，可卸载 / 恢复。
 
 ---
 
-##  技术栈
+## 技术栈
 
 | 技术 | 用途 |
 |------|------|
 | Python 3.13 | 主开发语言 |
 | PySide6 (Qt6) | 跨平台 GUI 框架 |
-| pynput | 键盘/鼠标全局监听 |
-| pywin32 | Windows 窗口 API（活跃窗口检测） |
+| pynput | 键盘 / 鼠标全局监听 |
+| pywin32 | Windows 窗口 API（前台窗口检测、热键） |
+| SQLite | 会话历史与活动记录（WAL 模式） |
 | PyInstaller | 打包为独立 exe |
 | Inno Setup | 安装包制作 |
 | pytest | 单元测试 |
 
 ---
 
-##  许可
+## 许可
 
 MIT License
 
 ---
 
-> ** 提示**: 桌宠位置会保存在配置中，下次启动时自动恢复。  
-> 如果桌面上看不见桌宠，检查它是不是跑到了屏幕外面，或查看 `~/.pet_demo/user_config.json` 中的 `window.position`。
+> **提示**：悬浮球位置以**中心点**保存在配置里，下次启动自动恢复。
+> 如果桌面上看不见它，检查是不是被拖到了屏幕外面，
+> 或查看 `~/.pet_demo/user_config.json` 中的 `window.center`。

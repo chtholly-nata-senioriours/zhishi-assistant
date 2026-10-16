@@ -29,8 +29,9 @@ Thumbs.db
 # 打包产物
 build/
 dist/
-*.spec
 *.exe
+# ⚠ 注意：PetDemo.spec 是**构建配置**（T4 的 hiddenimports 自动化写在里面），
+#   必须纳入版本控制 —— 所以这里**不要**忽略 *.spec。
 
 # 随项目分发的第三方库/运行时（依赖由 requirements.txt 管理）
 Lib/
@@ -41,6 +42,15 @@ pythoncom*.dll
 # 系统生成文件
 desktop.ini
 .pytest_cache/
+
+# 调试 / 测试输出重定向（全量测试常写 `> out.txt`，不是源码）
+out.txt
+dlog.txt
+
+# 全量测试的临时目录（见 AGENTS.md：跑全量测试要 --basetemp=.pytest_tmp，
+# 否则 pytest 在系统 Temp 下清 50+ 文件会被沙箱批量删除策略拦掉、收尾崩掉）
+# 用通配 —— 每轮发版都可能换一个 basetemp 名（.pytest_tmp / .pytest_run / …）
+.pytest_*/
 
 # Photoshop / 设计文件
 *.psd

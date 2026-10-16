@@ -1,0 +1,47 @@
+{
+  "spike": "S4",
+  "title": "同进程流式渲染是否卡顿",
+  "hypothesis": "Qt 主线程 + requests 流式 + 增量渲染 Markdown 不会导致 UI 卡顿",
+  "criterion": "流式期间最大心跳间隔 ≤ 50ms 为 PASS；> 100ms 为 FAIL",
+  "verdict": "PASS",
+  "checks": [
+    {
+      "desc": "流式请求全部成功",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "desc": "token 全部到达",
+      "ok": true,
+      "detail": "60 tokens × 2 策略"
+    },
+    {
+      "desc": "最差策略最大阻塞 ≤ 50ms",
+      "ok": true,
+      "detail": "29.06 ms"
+    },
+    {
+      "desc": "最差策略最大阻塞 ≤ 100ms",
+      "ok": true,
+      "detail": "29.06 ms"
+    },
+    {
+      "desc": "markdown 全量重排是否明显劣于 plain",
+      "ok": true,
+      "detail": "markdown 29.06ms vs plain 21.09ms"
+    }
+  ],
+  "metrics": {
+    "基线最大心跳间隔": 16.74,
+    "基线 P95 心跳间隔": 16.62,
+    "[plain] 最大心跳间隔": 21.09,
+    "[plain] P95 心跳间隔": 16.74,
+    "[plain] 首字节延迟": 416.3,
+    "[markdown] 最大心跳间隔": 29.06,
+    "[markdown] P95 心跳间隔": 16.87,
+    "[markdown] 首字节延迟": 402.6,
+    "最差策略最大心跳间隔": 29.06
+  },
+  "notes": [],
+  "timestamp": "2026-10-10 13:46:47"
+}

@@ -1,0 +1,26 @@
+{
+  "spike": "S5",
+  "title": "SSE 响应编码（真 HTTP 边界）",
+  "hypothesis": "Content-Type 不带 charset 时，provider 仍应正确解出 UTF-8 中文",
+  "criterion": "两种响应头下，provider 拼出的文本都与原文逐字相等 → PASS",
+  "verdict": "PASS",
+  "checks": [
+    {
+      "desc": "不带 charset（真实服务形态） → 文本一致",
+      "ok": true,
+      "detail": "header='text/event-stream' len=29"
+    },
+    {
+      "desc": "带 charset=utf-8 → 文本一致",
+      "ok": true,
+      "detail": "header='text/event-stream; charset=utf-8' len=29"
+    }
+  ],
+  "metrics": {
+    "样本": "翻译结果：你好，世界！这是一段中文测试（含全角标点） ✅。",
+    "样本 UTF-8 字节数": 85,
+    "按 ISO-8859-1 误解码会得到": "ç¿»è¯ç»æï¼ä½ å¥½ï¼ä¸çï¼è¿æ¯ä…"
+  },
+  "notes": [],
+  "timestamp": "2026-10-10 15:34:14"
+}

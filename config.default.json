@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.9.0",
   "window": {
     "position": [
       100,
@@ -29,54 +29,45 @@
     "long_break_interval": 4,
     "auto_start_break": false
   },
-  "quick_launch": {
-    "items": [
-      {
-        "name": "Chrome 浏览器",
-        "command": "start chrome",
-        "category": "浏览器"
-      },
-      {
-        "name": "Edge 浏览器",
-        "command": "start msedge",
-        "category": "浏览器"
-      },
-      {
-        "name": "记事本",
-        "command": "notepad",
-        "category": "工具"
-      },
-      {
-        "name": "计算器",
-        "command": "calc",
-        "category": "工具"
-      },
-      {
-        "name": "VS Code",
-        "command": "code",
-        "category": "开发"
-      },
-      {
-        "name": "PowerShell",
-        "command": "powershell",
-        "category": "系统"
-      },
-      {
-        "name": "文件资源管理器",
-        "command": "explorer",
-        "category": "系统"
-      }
-    ]
-  },
   "appearance": {
-    "pet_name": "小宠",
-    "pet_model": "default",
-    "theme": "default",
-    "animation_speed": 1.0
+    "orb_size": 52,
+    "theme": "default"
   },
   "notification": {
     "enabled": true,
     "rest_reminder_interval": 60,
     "rest_reminder_enabled": true
+  },
+  "ai": {
+    "enabled": true,
+    "hotkey_ask": "alt+q",
+    "hotkey_translate": "alt+t",
+    "hotkey_capture": "alt+s",
+    "provider": "openai_compat",
+    "base_url": "https://api.deepseek.com/v1",
+    "model": "deepseek-chat",
+    "vision_model": "",
+    "api_key": "",
+    "api_key_ref": "",
+    "default_preset": "ask",
+    "default_language": "zh",
+    "response_length": "auto",
+    "request_timeout": 60,
+    "panel_opacity": 0.95,
+    "panel_width": 460,
+    "panel_height": 360
+  },
+  "activity": {
+    "enabled": false,
+    "retention_days": 30,
+    "min_segment_seconds": 5,
+    "exclude_apps": [],
+    "focus_goal_minutes": 240,
+    "nudge_enabled": true,
+    "nudge_hour": 18,
+    "away_seconds": 300
+  },
+  "plugins": {
+    "disabled": []
   }
 }
