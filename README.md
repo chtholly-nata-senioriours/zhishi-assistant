@@ -4,13 +4,14 @@
 > 在合适的时候提醒你休息，也能随时问答、改写、翻译。
 > 基于 Python + PySide6 (Qt6) 构建，Windows 桌面端。
 
-**2026-10-15 起由「小小桌宠」更名为「知时助手」（v1.7.0）**：宠物模型、
-便签、快捷启动三个与主线无关的子系统已整体移除，产品聚焦在
-「时间感知 + AI 助手 + 隐私可控」三件事上。
+产品聚焦在**「时间感知 + AI 助手 + 隐私可控」**三件事上：
 
-**v1.9.0 重写了时间分类**：判定从裸子串匹配改为「进程名精确匹配 + 标题词边界匹配」，
-新增「学习 / 沟通」两类，并允许你在「应用分类」页**手动纠正**每个应用的归类
-（详见「[应用怎么分类](#应用怎么分类)」）。
+- **时间感知** —— 在后台安静地记录前台应用与停留时长，把碎片合并成时段，
+  画成一条 24 小时时间轴；分类判定可解释、可手动纠正。
+- **AI 助手** —— 三个全局热键随时唤起，问答 / 改写 / 翻译 / 截图提问，
+  流式输出、会话可续接。
+- **隐私可控** —— 不该记的东西**表里根本没有那一列**；密钥不落配置文件；
+  所有数据只存本机，可逐类查看、导出、清空。
 
 ---
 
@@ -53,7 +54,15 @@ petgame_demo/
 │   ├── state_machine.py           #   有限状态机（FSM）
 │   ├── rule_engine.py             #   规则引擎（概率 + 冷却）
 │   ├── activity/                  #   活动洞察：分类 / 采集 / 聚合 / 建议 / 提醒 / 日程
-│   │   └── category.py            #     五类判定 + explain() 给依据（纯函数，可单测）
+│   │   ├── category.py            #     五类判定 + explain() 给依据（纯函数，可单测）
+│   │   ├── tracker.py             #     瞬时事件 → 活动段（空闲剪裁）
+│   │   ├── store.py               #     分段落盘（独立 activity.db）+ 手动归类覆盖表
+│   │   ├── timeline.py            #     时间轴与趋势聚合（口径只有这一处）
+│   │   ├── summary.py             #     摘要生成（出网内容可单独审阅）
+│   │   ├── advice.py / advisor.py #     结构化建议 + 提示词
+│   │   ├── decision.py            #     人机协同决策留痕
+│   │   ├── schedule.py / idle.py  #     自然日语义 / 系统空闲秒数
+│   │   └── reminder.py            #     收工小结时机（一天最多一次 + 免打扰）
 │   └── ai/                        #   AI 核心：provider / 会话 / 预设 / 探测 / 流式
 │
 ├── presentation/                  # 表现层
@@ -67,15 +76,17 @@ petgame_demo/
 │   ├── ai_settings_dialog.py      #   AI 服务设置对话框
 │   ├── dialogs.py                 #   预设编辑等对话框
 │   └── design/                    #   设计系统：tokens / theme / qss / icons / widgets
-│       ├── charts.py              #     图表组件（时间轴 / 排行 / 排行条）
+│       ├── charts.py              #     图表组件（时间轴 / 排行 / 统计块）
 │       ├── advice_card.py         #     建议卡与总结段
 │       ├── focus_card.py          #     专注倒计时卡
 │       └── ring.py                #     托盘环与球环共用的状态判定
 │
+├── native/                        # 系统代理层（热键 / 选区 / 截图 / 注入 / 焦点）
 ├── data/                          # 数据层
 │   ├── paths.py                   #   用户数据根的唯一来源（PET_DEMO_HOME 可覆盖）
 │   ├── config_manager.py          #   配置管理（默认 + 用户配置合并 / 迁移）
 │   ├── log_manager.py             #   日志管理（运行 / 行为 / 迁移）
+│   ├── key_store.py               #   系统密钥库（keyring / Windows DPAPI + 脱敏）
 │   └── privacy.py                 #   本机数据清单 / 导出 / 清空（隐私页后端）
 │
 ├── tools/                         # 工具层
@@ -87,7 +98,9 @@ petgame_demo/
 │   ├── system/                    #   系统内置插件（5 个）
 │   └── user/                      #   用户安装（自动加载）
 │
-└── tests/                         # 单元测试（27 个文件，855 条用例，另有 1 条按环境跳过）
+├── tests/                         # 单元测试（27 个文件，856 条用例，另有 1 条按环境跳过）
+├── spikes/                        # 验证脚本与目检图（可独立复现，见 spikes/README.md）
+└── docs/                          # 设计文档
 ```
 
 ---
@@ -118,6 +131,10 @@ pip install -r requirements.txt
 python dev_bootstrap.py main.py
 ```
 
+> **环境要求**：Windows 10 / 11，Python 3.13。
+> 源码运行时 `dev_bootstrap.py` 负责把便携依赖目录挂进 `sys.path`，
+> 并注册 pywin32 的 DLL 目录 —— 直接 `python main.py` 可能报缺 DLL。
+
 ---
 
 ## 操作说明
@@ -130,43 +147,6 @@ python dev_bootstrap.py main.py
 | **右键** | 插件菜单（番茄钟 / 设置 / 退出） |
 | **Alt+Q / Alt+T / Alt+S** | 唤起 AI：问答 / 翻译 / 截图提问 |
 | **托盘图标** | 进度环 = 今日深度工作进度；菜单可开始专注、查看今日 |
-
----
-
-## 隐私与数据
-
-所有数据只保存在**本机** `~/.pet_demo/`（可用环境变量 `PET_DEMO_HOME` 整体改根）：
-
-| 数据 | 文件 | 内容 |
-|------|------|------|
-| 设置与偏好 | `user_config.json` | AI 服务地址、模型、界面与采集开关（**密钥默认不在这里**） |
-| 系统密钥库 | 操作系统凭据库，或 `secure_keys.bin` | API Key（按当前用户加密，配置里只留一个引用） |
-| AI 会话历史 | `ai.db` | 提问、回答与预设 |
-| 活动记录 | `activity.db` | **只有**前台应用名、类别、停留时长、敲击次数；另有「决策留痕」表与「应用分类」偏好表 |
-| 运行日志 | `logs/` | 排障用 |
-| 界面缓存 | `cache/` | 图标缓存，删了自动重建 |
-
-- **不采集**：窗口标题、按键内容、剪贴板、截图（`activity.db` 里根本没有 title 列，有测试钉住）。
-  决策留痕的上下文也**只放聚合数字**（条数 / 总时长 / 起止 / 是否过期），
-  用白名单过滤 —— 认不出的键直接丢掉。
-- **会出网**：只有你主动发起的 AI 提问，发送到你在「AI 服务」页自己填写的地址。
-- **可自决**：控制中心「隐私与数据」页可逐类**查看大小 / 导出 zip / 清空**。
-  导出走 sqlite 的 backup API，不会漏掉还留在 WAL 里的最近几轮对话。
-
-### 密钥怎么存
-
-「AI 服务」页的**保存位置**有两档，密钥本身**不进配置文件**（默认档）：
-
-1. **系统密钥库（推荐）** —— 装了 `keyring` 就用操作系统的凭据管理器
-   （Windows 凭据管理器 / macOS 钥匙串 / Linux Secret Service）；
-   没装则走 **Windows DPAPI 加密文件**（`secure_keys.bin`）。
-   两者都由操作系统按**当前用户**隔离，别的用户、别的进程读不到。
-   配置里只写 `"api_key_ref": "keyring:<条目名>"`。
-2. **配置文件（明文）** —— 给老用户与无密钥库机器的退路，界面上写明了代价
-   （会随备份与「导出全部数据」被带走）。
-
-读取一律走 `resolve_api_key()`（全项目唯一读密钥的地方）；日志、状态栏里
-只出现**脱敏**后的值（头 3 尾 4、总长度固定）。
 
 ---
 
@@ -189,9 +169,12 @@ python dev_bootstrap.py main.py
 1. **进程名**（精确匹配）：`code.exe` → 工作，`steam.exe` → 娱乐。
    **浏览器除外** —— `chrome.exe` 只是容器，不代表在做什么。
 2. **标题**（英文按**词边界**匹配、中文按子串）：`vs code` 命中「工作」，
-   `decode` **不会**（旧版用裸子串匹配，把含 `digital` / `knowledge` / `password`
-   的网页全判成了工作，v1.9.0 修掉）。
+   `decode` **不会**（早期版本用裸子串匹配，把含 `digital` / `knowledge` / `password`
+   的网页全判成了工作，现已修正并逐条钉了回归用例）。
 3. 都没有信号 → **其他**。
+
+每次判定都会附上**依据**（命中了哪个词），而依据只回命中的词 ——
+`activity.db` 里没有窗口标题这一列，依据也不会开后门。
 
 ### 手动纠正
 
@@ -201,6 +184,44 @@ python dev_bootstrap.py main.py
 所以随时可以「恢复自动判定」，而「系统当初判成什么」永远查得到。
 
 > **深度工作** = 工作 + 学习。看两小时网课在悬浮球进度环上不该是 0。
+
+---
+
+## 隐私与数据
+
+所有数据只保存在**本机** `~/.pet_demo/`（可用环境变量 `PET_DEMO_HOME` 整体改根）：
+
+| 数据 | 文件 | 内容 |
+|------|------|------|
+| 设置与偏好 | `user_config.json` | AI 服务地址、模型、界面与采集开关（**密钥默认不在这里**） |
+| 系统密钥库 | 操作系统凭据库，或 `secure_keys.bin` | API Key（按当前用户加密，配置里只留一个引用） |
+| AI 会话历史 | `ai.db` | 提问、回答与预设 |
+| 活动记录 | `activity.db` | **只有**前台应用名、类别、停留时长、敲击次数；另有「决策留痕」表与「应用分类」偏好表 |
+| 运行日志 | `logs/` | 排障用 |
+| 界面缓存 | `cache/` | 图标缓存，删了自动重建 |
+
+- **不采集**：窗口标题、按键内容、剪贴板、截图（`activity.db` 里根本没有 title 列，有测试钉住）。
+  决策留痕的上下文也**只放聚合数字**（条数 / 总时长 / 起止 / 是否过期），
+  用白名单过滤 —— 认不出的键直接丢掉。
+- **会出网**：只有你主动发起的 AI 提问，发送到你在「AI 服务」页自己填写的地址。
+- **可自决**：控制中心「隐私与数据」页可逐类**查看大小 / 导出 zip / 清空**。
+  导出走 sqlite 的 backup API，不会漏掉还留在 WAL 里的最近几轮对话。
+- **活动采集默认关闭**：不开启就不订阅事件、不落任何数据。
+
+### 密钥怎么存
+
+「AI 服务」页的**保存位置**有两档，密钥本身**不进配置文件**（默认档）：
+
+1. **系统密钥库（推荐）** —— 装了 `keyring` 就用操作系统的凭据管理器
+   （Windows 凭据管理器 / macOS 钥匙串 / Linux Secret Service）；
+   没装则走 **Windows DPAPI 加密文件**（`secure_keys.bin`）。
+   两者都由操作系统按**当前用户**隔离，别的用户、别的进程读不到。
+   配置里只写 `"api_key_ref": "keyring:<条目名>"`。
+2. **配置文件（明文）** —— 给老用户与无密钥库机器的退路，界面上写明了代价
+   （会随备份与「导出全部数据」被带走）。
+
+读取一律走 `resolve_api_key()`（全项目唯一读密钥的地方）；日志、状态栏里
+只出现**脱敏**后的值（头 3 尾 4、总长度固定）。
 
 ---
 
@@ -222,7 +243,18 @@ python dev_bootstrap.py main.py
 }
 ```
 
-> `activity.enabled` 默认 **false**：不开启就不订阅事件、不落任何数据。
+| 配置节 | 关键项 | 说明 |
+|---|---|---|
+| `window` | `center` | 悬浮球位置，以**中心点**保存，下次启动自动恢复 |
+| `appearance` | `theme` | `default` / `light` / `dark`；`orb_size` 悬浮球直径 |
+| `behavior` | `idle_threshold` 等 | 空闲 / 休眠 / 专注判定的秒数阈值 |
+| `tomato` | `work_duration` / `break_duration` | 番茄钟时长（分钟） |
+| `ai` | `base_url` / `api_key_ref` | 兼容 OpenAI 接口的服务地址与密钥引用 |
+| `activity` | `enabled` | **默认 false**：不开启就不订阅事件、不落任何数据 |
+| | `retention_days` | 活动记录保留天数（超期清理） |
+| | `focus_goal_minutes` | 每日深度工作目标，进度环按它算比例 |
+
+环境变量 `PET_DEMO_HOME` 可整体改写数据根目录（测试与多份配置隔离都用它）。
 
 ---
 
@@ -248,20 +280,28 @@ python dev_bootstrap.py spikes/_refresh_release.py
 
 安装包用 Inno Setup 编译：右键 `installer.iss` → Compile → `Output\知时助手_Setup.exe`。
 
+> ⚠ 顺序不能颠倒：`leak_check.py` 必须在 `_refresh_release.py` **之后**跑
+> —— 它只认发布目录 `dist/知时助手-v<版本>-win64`，先跑会失败在「目录不存在」。
+
 ---
 
 ## 测试
 
 ```bash
-# 全量（不带 tests 路径会把第三方测试收进来 → access violation 崩掉）
+# 全量（不带 tests 路径会把第三方测试收进来 → 崩溃）
 rm -rf .pytest_tmp && python dev_bootstrap.py -m pytest tests -q --basetemp=.pytest_tmp
 
 # 单文件
-python dev_bootstrap.py -m pytest tests/test_privacy.py -q
+python dev_bootstrap.py -m pytest tests/test_category.py -q
 ```
 
 测试全部跑在**临时数据根**下（`tests/conftest.py` 在 import 前设 `PET_DEMO_HOME`），
 不会碰你真实的 `~/.pet_demo/`。
+
+除单元测试外，`spikes/` 下还有一批**可独立复现**的验证脚本与目检图：
+端到端链路验证（假 Provider + 合成按键）、真实 API 连通性自检、
+发版核查、以及各页面的界面目检图（浅深两套）。
+索引见 `spikes/README.md`。
 
 ---
 
@@ -270,18 +310,22 @@ python dev_bootstrap.py -m pytest tests/test_privacy.py -q
 ```
 用户交互 → 感知层（input / window / time）
               ↓ EventBus
-         决策引擎（状态机 + 规则引擎）
+         决策引擎（状态机 + 规则引擎 + 活动分析 + AI 编排）
               ↓ EventBus
          表现层（外壳 + 悬浮球 + 托盘 + 控制中心）
               ↓
          插件层（activity_advisor / ai_assistant / timer / settings / quit）
 ```
 
+- **分层依赖严格单向向上**：`native`（系统代理）→ `engine`（决策与 AI）→
+  `presentation`（交互）→ `data`（数据）。核心分析层**零界面依赖**，可脱离 Qt 单测。
 - **感知层**：收集键盘 / 鼠标 / 窗口 / 时间信号 → 发布事件。
-- **决策引擎**：状态机管五种状态切换；规则引擎按概率 + 冷却触发表情与音效。
+- **决策引擎**：状态机管五种状态切换；规则引擎按概率 + 冷却触发反馈；
+  活动分析层负责「行为 → 分类 → 摘要 → 提示词」这一段纯逻辑。
 - **表现层**：`ShellWindow`（外壳，管拖拽 / 位置 / 菜单 / 气泡）+ `Form`（外观）分层，
   换形态不动窗口行为；托盘环与球环共用同一套状态判定。
-- **插件系统**：基于 `SKILL.md` 自动发现，`plugin.py` 动态加载，可卸载 / 恢复。
+- **插件系统**：按清单自动发现，支持包加载、异步事件投递与 `on_ui_ready`
+  生命周期钩子，可单独启用 / 卸载 / 恢复。
 
 ---
 
